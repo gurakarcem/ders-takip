@@ -1,0 +1,301 @@
+/**
+ * DersTakip Pro - Başlangıç Veritabanı
+ * Orijinal CSV dosyasındaki tüm veriler (2026-2027, 2025-2026, 2024-2025)
+ * Öğrenci ders ücretleri, ders kayıtları ve ödeme takip sistemi entegre edilmiştir.
+ */
+window.INITIAL_DERS_DATA = {
+  activePeriodId: "2026-2027",
+  periods: [
+    {
+      id: "2026-2027",
+      name: "2026 - 2027 Eğitim Yılı",
+      isCurrent: true,
+      students: [
+        { id: "yalin", name: "Yalın", grade: "11. Sınıf", note: "Devam eden", rate: 3500, phone: "0532 000 0001" },
+        { id: "sarp", name: "Sarp", grade: "11. Sınıf", note: "Devam eden", rate: 2500, phone: "0532 000 0002" },
+        { id: "can12", name: "Can 12", grade: "12. Sınıf", note: "YKS Hazırlık", rate: 4000, phone: "0532 000 0003" },
+        { id: "ural", name: "Ural", grade: "11. Sınıf", note: "", rate: 4000, phone: "0532 000 0004" },
+        { id: "ege", name: "Ege", grade: "11. Sınıf", note: "", rate: 4000, phone: "0532 000 0005" },
+        { id: "melis", name: "Melis", grade: "11. Sınıf", note: "Devam eden", rate: 3125, phone: "0532 000 0006" },
+        { id: "eylul", name: "Eylül", grade: "Lise", note: "Kanada", rate: 3750, phone: "0532 000 0007" }
+      ],
+      lessonDates: {
+        yalin: ["2026-08-23", "2026-08-30", "2026-09-06", "2026-09-13", "2026-09-20", "2026-09-27", "2026-10-04"],
+        sarp: ["2026-09-27", "2026-10-04"],
+        can12: [],
+        ural: ["2026-09-12", "2026-09-19", "2026-09-23"],
+        ege: ["2026-10-02"],
+        melis: ["2026-09-22", "2026-10-06"],
+        eylul: ["2026-09-27", "2026-10-04"]
+      },
+      lessons: [
+        { id: "les_1", studentId: "yalin", date: "2026-08-23", month: "Ağustos", rate: 3000, isPaid: true, paidDate: "2026-08-25", note: "Konu tekrarı" },
+        { id: "les_2", studentId: "yalin", date: "2026-08-30", month: "Eylül", rate: 3500, isPaid: true, paidDate: "2026-09-01", note: "Soru çözümü" },
+        { id: "les_3", studentId: "yalin", date: "2026-09-06", month: "Eylül", rate: 3500, isPaid: true, paidDate: "2026-09-10", note: "" },
+        { id: "les_4", studentId: "yalin", date: "2026-09-13", month: "Eylül", rate: 3500, isPaid: true, paidDate: "2026-09-15", note: "" },
+        { id: "les_5", studentId: "yalin", date: "2026-09-20", month: "Eylül", rate: 3500, isPaid: true, paidDate: "2026-09-25", note: "" },
+        { id: "les_6", studentId: "yalin", date: "2026-09-27", month: "Eylül", rate: 3500, isPaid: true, paidDate: "2026-09-30", note: "" },
+        { id: "les_7", studentId: "yalin", date: "2026-10-04", month: "Ekim", rate: 3500, isPaid: false, paidDate: "", note: "Ödeme bekleniyor" },
+        
+        { id: "les_8", studentId: "sarp", date: "2026-09-27", month: "Eylül", rate: 3000, isPaid: true, paidDate: "2026-09-28", note: "" },
+        { id: "les_9", studentId: "sarp", date: "2026-10-04", month: "Ekim", rate: 2000, isPaid: false, paidDate: "", note: "Ödeme bekleniyor" },
+        
+        { id: "les_10", studentId: "ural", date: "2026-09-12", month: "Eylül", rate: 4000, isPaid: true, paidDate: "2026-09-15", note: "" },
+        { id: "les_11", studentId: "ural", date: "2026-09-19", month: "Eylül", rate: 4000, isPaid: true, paidDate: "2026-09-20", note: "" },
+        { id: "les_12", studentId: "ural", date: "2026-09-23", month: "Eylül", rate: 4000, isPaid: true, paidDate: "2026-09-25", note: "" },
+        
+        { id: "les_13", studentId: "ege", date: "2026-10-02", month: "Ekim", rate: 4000, isPaid: false, paidDate: "", note: "Ödeme bekleniyor" },
+        
+        { id: "les_14", studentId: "melis", date: "2026-09-22", month: "Eylül", rate: 3500, isPaid: true, paidDate: "2026-09-25", note: "" },
+        { id: "les_15", studentId: "melis", date: "2026-10-06", month: "Ekim", rate: 2750, isPaid: false, paidDate: "", note: "Ödeme bekleniyor" },
+        
+        { id: "les_16", studentId: "eylul", date: "2026-09-27", month: "Eylül", rate: 4000, isPaid: true, paidDate: "2026-09-28", note: "Kanada transferi" },
+        { id: "les_17", studentId: "eylul", date: "2026-10-04", month: "Ekim", rate: 3500, isPaid: false, paidDate: "", note: "Ödeme bekleniyor" }
+      ],
+      monthlyLessons: {
+        "Ağustos": { yalin: 1, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
+        "Eylül":   { yalin: 5, sarp: 1, can12: 0, ural: 3, ege: 0, melis: 1, eylul: 1 },
+        "Ekim":    { yalin: 1, sarp: 1, can12: 0, ural: 0, ege: 1, melis: 1, eylul: 1 },
+        "Kasım":   { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
+        "Aralık":  { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
+        "Ocak":    { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
+        "Şubat":   { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
+        "Mart":    { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
+        "Nisan":   { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
+        "Mayıs":   { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
+        "Haziran": { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 }
+      },
+      monthlyRevenue: {
+        "Ağustos": { yalin: 3000,  sarp: 0,    can12: 0, ural: 0,     ege: 0,    melis: 0,    eylul: 0 },
+        "Eylül":   { yalin: 17500, sarp: 3000, can12: 0, ural: 12000, ege: 0,    melis: 3500, eylul: 4000 },
+        "Ekim":    { yalin: 3500,  sarp: 2000, can12: 0, ural: 0,     ege: 4000, melis: 2750, eylul: 3500 },
+        "Kasım":   { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
+        "Aralık":  { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
+        "Ocak":    { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
+        "Şubat":   { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
+        "Mart":    { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
+        "Nisan":   { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
+        "Mayıs":   { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
+        "Haziran": { yalin: 0, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 }
+      }
+    },
+    {
+      id: "2025-2026",
+      name: "2025 - 2026 Eğitim Yılı",
+      isCurrent: false,
+      students: [
+        { id: "yalin", name: "Yalın", grade: "10. Sınıf", note: "", rate: 2400 },
+        { id: "sarp", name: "Sarp", grade: "10. Sınıf", note: "", rate: 2100 },
+        { id: "melis", name: "Melis", grade: "10. Sınıf", note: "", rate: 2500 },
+        { id: "eren", name: "Eren", grade: "10. Sınıf", note: "", rate: 2000 },
+        { id: "can10asli", name: "Can (Aslı)", grade: "10. Sınıf", note: "", rate: 2800 },
+        { id: "aciib", name: "Acı IB", grade: "IB Programı", note: "Hülyasu Acı", rate: 2750 },
+        { id: "hollanda", name: "Eren (Hollanda)", grade: "Yurtdışı", note: "Hollanda", rate: 3500 },
+        { id: "sinif7", name: "7. Sınıf", grade: "7. Sınıf", note: "", rate: 2500 },
+        { id: "irem", name: "İrem", grade: "Lise", note: "", rate: 2750 },
+        { id: "yagmur", name: "Yağmur", grade: "Lise", note: "", rate: 3000 },
+        { id: "deniz", name: "Deniz", grade: "Lise", note: "", rate: 3000 },
+        { id: "ege", name: "Ege", grade: "10. Sınıf", note: "", rate: 3000 },
+        { id: "omer", name: "Ömer", grade: "Lise", note: "", rate: 3000 }
+      ],
+      lessonDates: {
+        yalin: [
+          "2025-06-09", "2025-08-04", "2025-08-05", "2025-08-06", "2025-08-08", "2025-08-24", "2025-09-07", "2025-09-14", "2025-09-21", "2025-09-28",
+          "2025-10-05", "2025-10-12", "2025-10-26", "2025-11-02", "2025-11-09", "2025-11-16", "2025-11-23", "2025-11-30", "2025-12-07", "2025-12-14",
+          "2025-12-21", "2026-01-11", "2026-01-18", "2026-02-01", "2026-02-08", "2026-03-01", "2026-03-08", "2026-03-15", "2026-03-29", "2026-04-05",
+          "2026-04-19", "2026-05-03", "2026-05-10", "2026-05-17", "2026-05-24", "2026-05-31", "2026-06-07", "2026-06-29", "2026-07-01", "2026-07-06",
+          "2026-07-08", "2026-07-13", "2026-07-20", "2026-07-22"
+        ],
+        sarp: [
+          "2025-09-14", "2025-09-21", "2025-09-28", "2025-10-05", "2025-10-12", "2025-10-19", "2025-10-26", "2025-11-02", "2025-11-23", "2025-11-30",
+          "2025-12-07", "2025-12-14", "2025-12-21", "2025-12-28", "2026-01-11", "2026-02-01", "2026-02-08", "2026-02-15", "2026-02-22", "2026-03-01",
+          "2026-03-08", "2026-03-18", "2026-04-05", "2026-04-19", "2026-05-10", "2026-05-17", "2026-05-31", "2026-06-07", "2026-06-16"
+        ],
+        melis: [
+          "2025-09-23", "2025-09-30", "2025-10-14", "2025-10-21", "2025-11-04", "2025-11-18", "2025-12-02", "2025-12-09", "2025-12-16", "2026-02-03",
+          "2026-02-10", "2026-02-17", "2026-02-24", "2026-03-10", "2026-03-24", "2026-03-30", "2026-04-07", "2026-04-28", "2026-06-02", "2026-06-07",
+          "2026-06-14"
+        ],
+        eren: [
+          "2025-09-18", "2025-09-25", "2025-10-02", "2025-10-10", "2025-10-16", "2025-10-25", "2025-10-30", "2025-11-20", "2025-11-27", "2025-12-04",
+          "2025-12-11", "2025-12-20"
+        ],
+        can10asli: [
+          "2025-10-05", "2025-10-19", "2025-11-02", "2025-11-30", "2025-12-14", "2026-01-25", "2026-02-08", "2026-02-22", "2026-03-08", "2026-04-05",
+          "2026-04-19", "2026-05-17"
+        ],
+        aciib: [
+          "2025-09-16", "2025-09-21", "2025-09-26", "2025-09-29", "2025-10-05", "2025-10-08", "2025-10-17", "2025-10-19", "2025-10-24", "2025-10-26",
+          "2025-10-31", "2025-11-02", "2025-11-14", "2025-11-16", "2025-11-28", "2025-12-03", "2025-12-05", "2025-12-07", "2025-12-10", "2025-12-19",
+          "2025-12-21", "2025-12-23", "2026-01-04", "2026-01-11"
+        ],
+        hollanda: [
+          "2025-09-13", "2025-09-20", "2025-10-04", "2025-10-11", "2025-10-18", "2025-11-16", "2025-11-22", "2025-12-13", "2025-12-20", "2025-12-27",
+          "2026-01-03", "2026-01-10"
+        ],
+        sinif7: [
+          "2025-10-12", "2025-10-26", "2025-11-09", "2025-11-23", "2025-12-07", "2025-12-21", "2026-01-04", "2026-01-18", "2026-02-01", "2026-02-15",
+          "2026-03-01", "2026-04-12", "2026-04-26", "2026-05-24", "2026-06-07", "2026-06-21"
+        ],
+        irem: [
+          "2025-11-03", "2025-11-06", "2025-11-10", "2025-11-13", "2025-11-17", "2025-11-22", "2025-11-24", "2025-12-01", "2025-12-06", "2025-12-08",
+          "2025-12-13", "2025-12-15", "2025-12-22", "2025-12-25", "2025-12-29", "2026-01-10", "2026-01-14", "2026-01-17", "2026-01-21", "2026-01-24",
+          "2026-01-28", "2026-01-31", "2026-02-02", "2026-02-05", "2026-02-09", "2026-02-16", "2026-02-19", "2026-02-27", "2026-02-28", "2026-03-05",
+          "2026-03-09", "2026-03-12", "2026-03-17", "2026-03-19", "2026-04-03", "2026-04-06", "2026-04-10", "2026-04-13", "2026-04-18", "2026-04-20",
+          "2026-04-24", "2026-05-02", "2026-05-04", "2026-05-09", "2026-05-15", "2026-05-18", "2026-05-22", "2026-05-25", "2026-06-01", "2026-06-08",
+          "2026-06-12", "2026-06-18"
+        ],
+        yagmur: [
+          "2025-11-16", "2025-11-23", "2025-11-30", "2025-12-07", "2025-12-14", "2025-12-21", "2025-12-28", "2026-01-04", "2026-01-11", "2026-01-18",
+          "2026-02-08", "2026-02-15", "2026-03-01", "2026-03-08", "2026-04-02", "2026-04-05", "2026-04-19", "2026-04-26", "2026-05-03", "2026-05-10"
+        ],
+        deniz: [
+          "2025-11-29", "2025-12-06", "2025-12-27", "2026-01-09", "2026-01-15", "2026-01-17"
+        ],
+        ege: [
+          "2026-03-14", "2026-03-18", "2026-03-26", "2026-04-09", "2026-05-02", "2026-05-21"
+        ],
+        omer: [
+          "2026-05-07", "2026-05-16", "2026-05-24", "2026-06-05"
+        ]
+      },
+      monthlyLessons: {
+        "Ağustos": { yalin: 5, sarp: 0, melis: 0, eren: 0, can10asli: 0, aciib: 0, hollanda: 0, sinif7: 0, irem: 0, yagmur: 0, deniz: 0, ege: 0, omer: 0 },
+        "Eylül":   { yalin: 4, sarp: 3, melis: 2, eren: 2, can10asli: 0, aciib: 4, hollanda: 2, sinif7: 0, irem: 0, yagmur: 0, deniz: 0, ege: 0, omer: 0 },
+        "Ekim":    { yalin: 3, sarp: 4, melis: 2, eren: 5, can10asli: 2, aciib: 7, hollanda: 3, sinif7: 2, irem: 0, yagmur: 0, deniz: 0, ege: 0, omer: 0 },
+        "Kasım":   { yalin: 5, sarp: 3, melis: 2, eren: 2, can10asli: 2, aciib: 4, hollanda: 2, sinif7: 2, irem: 7, yagmur: 3, deniz: 1, ege: 0, omer: 0 },
+        "Aralık":  { yalin: 3, sarp: 4, melis: 3, eren: 3, can10asli: 1, aciib: 7, hollanda: 3, sinif7: 2, irem: 8, yagmur: 4, deniz: 2, ege: 0, omer: 0 },
+        "Ocak":    { yalin: 2, sarp: 1, melis: 0, eren: 0, can10asli: 1, aciib: 2, hollanda: 2, sinif7: 2, irem: 7, yagmur: 3, deniz: 3, ege: 0, omer: 0 },
+        "Şubat":   { yalin: 2, sarp: 4, melis: 4, eren: 0, can10asli: 2, aciib: 0, hollanda: 0, sinif7: 2, irem: 7, yagmur: 2, deniz: 0, ege: 0, omer: 0 },
+        "Mart":    { yalin: 4, sarp: 3, melis: 3, eren: 0, can10asli: 1, aciib: 0, hollanda: 0, sinif7: 1, irem: 5, yagmur: 2, deniz: 0, ege: 3, omer: 0 },
+        "Nisan":   { yalin: 2, sarp: 2, melis: 2, eren: 0, can10asli: 2, aciib: 0, hollanda: 0, sinif7: 2, irem: 7, yagmur: 4, deniz: 0, ege: 1, omer: 0 },
+        "Mayıs":   { yalin: 5, sarp: 3, melis: 0, eren: 0, can10asli: 1, aciib: 0, hollanda: 0, sinif7: 1, irem: 7, yagmur: 2, deniz: 0, ege: 2, omer: 3 },
+        "Haziran": { yalin: 8, sarp: 2, melis: 3, eren: 0, can10asli: 0, aciib: 0, hollanda: 0, sinif7: 2, irem: 4, yagmur: 0, deniz: 0, ege: 0, omer: 1 }
+      },
+      monthlyRevenue: {
+        "Ağustos": { yalin: 12000, sarp: 0,    melis: 0,     eren: 0,     can10asli: 0,    aciib: 0,     hollanda: 0,     sinif7: 0,    irem: 0,     yagmur: 0,    deniz: 0,    ege: 0,    omer: 0 },
+        "Eylül":   { yalin: 9600,  sarp: 6000, melis: 4400,  eren: 4000,  can10asli: 0,    aciib: 11000, hollanda: 7000,  sinif7: 0,    irem: 0,     yagmur: 0,    deniz: 0,    ege: 0,    omer: 0 },
+        "Ekim":    { yalin: 7200,  sarp: 8000, melis: 4400,  eren: 10000, can10asli: 5000, aciib: 19250, hollanda: 10500, sinif7: 5000, irem: 0,     yagmur: 0,    deniz: 0,    ege: 0,    omer: 0 },
+        "Kasım":   { yalin: 12000, sarp: 6000, melis: 4400,  eren: 4000,  can10asli: 5000, aciib: 11000, hollanda: 7000,  sinif7: 5000, irem: 19250, yagmur: 9000, deniz: 3000, ege: 0,    omer: 0 },
+        "Aralık":  { yalin: 7200,  sarp: 8000, melis: 6600,  eren: 6000,  can10asli: 2500, aciib: 19250, hollanda: 10500, sinif7: 5000, irem: 22000, yagmur: 12000,deniz: 6000, ege: 0,    omer: 0 },
+        "Ocak":    { yalin: 4800,  sarp: 2200, melis: 0,     eren: 0,     can10asli: 3000, aciib: 5500,  hollanda: 7000,  sinif7: 5000, irem: 19250, yagmur: 9000, deniz: 9000, ege: 0,    omer: 0 },
+        "Şubat":   { yalin: 4800,  sarp: 8800, melis: 10800, eren: 0,     can10asli: 6000, aciib: 0,     hollanda: 0,     sinif7: 5000, irem: 19250, yagmur: 6000, deniz: 0,    ege: 0,    omer: 0 },
+        "Mart":    { yalin: 9600,  sarp: 6600, melis: 8100,  eren: 0,     can10asli: 3000, aciib: 0,     hollanda: 0,     sinif7: 2500, irem: 13750, yagmur: 6000, deniz: 0,    ege: 9000, omer: 0 },
+        "Nisan":   { yalin: 4800,  sarp: 4400, melis: 5400,  eren: 0,     can10asli: 6000, aciib: 0,     hollanda: 0,     sinif7: 5000, irem: 19250, yagmur: 12000,deniz: 0,    ege: 3000, omer: 0 },
+        "Mayıs":   { yalin: 12000, sarp: 6600, melis: 0,     eren: 0,     can10asli: 3000, aciib: 0,     hollanda: 0,     sinif7: 2500, irem: 19250, yagmur: 6000, deniz: 0,    ege: 6000, omer: 9000 },
+        "Haziran": { yalin: 19200, sarp: 4400, melis: 8100,  eren: 0,     can10asli: 0,    aciib: 0,     hollanda: 0,     sinif7: 5000, irem: 11000, yagmur: 0,    deniz: 0,    ege: 0,    omer: 3000 }
+      }
+    },
+    {
+      id: "2024-2025",
+      name: "2024 - 2025 Eğitim Yılı",
+      isCurrent: false,
+      students: [
+        { id: "yalin", name: "Yalın", grade: "9. Sınıf", note: "", rate: 1800 },
+        { id: "ikizler", name: "İkizler", grade: "12. Sınıf", note: "", rate: 1500 },
+        { id: "sarp", name: "Sarp", grade: "9. Sınıf", note: "", rate: 1400 },
+        { id: "emrah", name: "Çınar (Emrah)", grade: "11. Sınıf", note: "Ankara", rate: 1250 },
+        { id: "melis", name: "Melis", grade: "9. Sınıf", note: "", rate: 1650 },
+        { id: "canitk", name: "Can İTK", grade: "11. Sınıf", note: "", rate: 2700 },
+        { id: "can10asli", name: "Can 10 (Aslı)", grade: "10. Sınıf", note: "", rate: 1850 },
+        { id: "cem", name: "Cem (Elif)", grade: "9. Sınıf", note: "", rate: 1000 },
+        { id: "poyraz", name: "Poyraz", grade: "12. Sınıf", note: "Almanya", rate: 2000 },
+        { id: "eren", name: "Eren", grade: "9. Sınıf", note: "", rate: 1700 },
+        { id: "pelin", name: "Pelin", grade: "10. Sınıf", note: "", rate: 1900 },
+        { id: "irmak", name: "Irmak", grade: "10. Sınıf", note: "", rate: 1900 },
+        { id: "buse", name: "Buse", grade: "Üniversite", note: "", rate: 1800 },
+        { id: "nehir", name: "Nehir", grade: "10. Sınıf", note: "", rate: 1800 }
+      ],
+      lessonDates: {
+        yalin: [
+          "2024-08-29", "2024-08-31", "2024-09-05", "2024-09-08", "2024-09-12", "2024-09-14", "2024-09-19", "2024-09-21", "2024-09-26", "2024-09-28",
+          "2024-10-03", "2024-10-05", "2024-10-17", "2024-10-19", "2024-10-26", "2024-11-03", "2024-11-16", "2024-11-17", "2024-11-30", "2024-12-07",
+          "2025-01-11", "2025-01-18", "2025-01-25", "2025-02-01", "2025-02-15", "2025-02-22", "2025-03-01", "2025-03-08", "2025-03-15", "2025-03-22",
+          "2025-03-29", "2025-04-01", "2025-04-12", "2025-04-26", "2025-05-03", "2025-05-10", "2025-05-17", "2025-05-24", "2025-05-31", "2025-06-09"
+        ],
+        ikizler: [
+          "2024-09-16", "2024-09-23", "2024-09-30", "2024-10-09", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18",
+          "2024-11-25", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-22", "2025-01-23",
+          "2025-01-29", "2025-01-31", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-25",
+          "2025-03-27", "2025-04-02", "2025-04-03", "2025-04-07", "2025-04-17", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19",
+          "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-12", "2025-06-17", "2025-06-19"
+        ],
+        sarp: [
+          "2024-09-15", "2024-09-22", "2024-09-29", "2024-10-09", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18",
+          "2024-11-25", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-05", "2025-01-12", "2025-01-19", "2025-01-26", "2025-02-02",
+          "2025-02-09", "2025-02-16", "2025-02-23", "2025-03-02", "2025-03-09", "2025-03-16", "2025-03-23", "2025-04-13", "2025-04-20", "2025-05-04",
+          "2025-05-11", "2025-05-18", "2025-05-25", "2025-06-01"
+        ],
+        emrah: [
+          "2024-09-28", "2024-10-04"
+        ],
+        melis: [
+          "2024-10-02", "2024-10-08", "2024-10-15", "2024-11-05", "2024-11-19", "2024-11-26", "2024-12-03", "2024-12-17", "2024-12-21", "2024-12-29",
+          "2025-01-07", "2025-01-14", "2025-01-21", "2025-02-03", "2025-02-11", "2025-02-18", "2025-02-25", "2025-03-04", "2025-03-11", "2025-03-24",
+          "2025-04-08", "2025-04-15", "2025-04-22", "2025-04-29", "2025-05-06", "2025-05-13", "2025-05-20", "2025-06-03"
+        ],
+        canitk: [
+          "2024-10-27", "2024-11-24", "2024-11-30", "2024-12-08", "2024-12-14", "2024-12-22", "2024-12-28", "2025-01-05", "2025-01-12", "2025-01-19",
+          "2025-01-26", "2025-02-01", "2025-02-16", "2025-02-23", "2025-03-09", "2025-03-16", "2025-03-29", "2025-04-13", "2025-05-01", "2025-05-04",
+          "2025-05-10"
+        ],
+        can10asli: [
+          "2024-10-06", "2024-11-03", "2024-11-17", "2024-12-02", "2024-12-15", "2024-12-29", "2025-02-02", "2025-02-16", "2025-03-02", "2025-03-16",
+          "2025-04-13", "2025-04-27", "2025-05-11", "2025-05-25"
+        ],
+        cem: [
+          "2024-10-13", "2024-10-20", "2024-10-27", "2024-11-03", "2024-11-24", "2024-12-08", "2024-12-15", "2024-12-22", "2024-12-28"
+        ],
+        poyraz: [
+          "2024-11-10", "2024-11-17", "2024-11-24", "2024-12-01", "2024-12-02", "2024-12-05", "2025-01-05", "2025-01-19", "2025-01-26", "2025-02-16",
+          "2025-02-23", "2025-03-09", "2025-03-16", "2025-03-23", "2025-04-06", "2025-04-13", "2025-04-27", "2025-05-25"
+        ],
+        eren: [
+          "2024-11-21", "2024-11-28", "2024-12-12", "2024-12-19", "2024-12-26", "2025-01-09", "2025-02-06", "2025-02-13", "2025-02-20", "2025-02-27",
+          "2025-03-06", "2025-03-13", "2025-03-20", "2025-04-10", "2025-04-17", "2025-04-24", "2025-05-08", "2025-05-15", "2025-05-22", "2025-05-29"
+        ],
+        irmak: [
+          "2024-12-06", "2024-12-13", "2024-12-21", "2025-01-03", "2025-01-11", "2025-01-20", "2025-01-22", "2025-01-27", "2025-02-07", "2025-02-14",
+          "2025-02-21", "2025-03-01", "2025-03-15", "2025-03-28", "2025-04-11", "2025-04-25", "2025-05-02", "2025-05-23"
+        ],
+        pelin: [
+          "2024-12-07", "2024-12-14", "2024-12-20", "2025-01-04", "2025-01-10", "2025-01-20", "2025-01-22", "2025-01-27", "2025-02-08", "2025-02-15",
+          "2025-02-22", "2025-02-28", "2025-03-15", "2025-03-29", "2025-04-12", "2025-04-26", "2025-05-03", "2025-05-24"
+        ],
+        buse: [
+          "2024-12-13", "2024-12-14", "2024-12-20", "2024-12-21", "2024-12-24", "2024-12-27", "2024-12-28", "2025-01-03", "2025-01-04", "2025-01-11",
+          "2025-01-12", "2025-01-17", "2025-01-21", "2025-01-24", "2025-01-29", "2025-01-31", "2025-02-22", "2025-02-23"
+        ],
+        nehir: [
+          "2025-04-27"
+        ]
+      },
+      monthlyLessons: {
+        "Ağustos": { yalin: 2, ikizler: 0, sarp: 0, emrah: 0, melis: 0, canitk: 0, can10asli: 0, cem: 0, poyraz: 0, eren: 0, pelin: 0, irmak: 0, buse: 0, nehir: 0 },
+        "Eylül":   { yalin: 8, ikizler: 3, sarp: 3, emrah: 1, melis: 0, canitk: 0, can10asli: 0, cem: 0, poyraz: 0, eren: 0, pelin: 0, irmak: 0, buse: 0, nehir: 0 },
+        "Ekim":    { yalin: 5, ikizler: 4, sarp: 4, emrah: 1, melis: 3, canitk: 1, can10asli: 1, cem: 3, poyraz: 0, eren: 0, pelin: 0, irmak: 0, buse: 0, nehir: 0 },
+        "Kasım":   { yalin: 4, ikizler: 4, sarp: 4, emrah: 0, melis: 3, canitk: 2, can10asli: 2, cem: 2, poyraz: 3, eren: 2, pelin: 0, irmak: 0, buse: 0, nehir: 0 },
+        "Aralık":  { yalin: 1, ikizler: 4, sarp: 4, emrah: 0, melis: 4, canitk: 4, can10asli: 3, cem: 4, poyraz: 3, eren: 4, pelin: 3, irmak: 3, buse: 7, nehir: 0 },
+        "Ocak":    { yalin: 3, ikizler: 7, sarp: 4, emrah: 0, melis: 3, canitk: 4, can10asli: 0, cem: 2, poyraz: 3, eren: 1, pelin: 5, irmak: 5, buse: 9, nehir: 0 },
+        "Şubat":   { yalin: 3, ikizler: 4, sarp: 4, emrah: 0, melis: 4, canitk: 3, can10asli: 2, cem: 0, poyraz: 2, eren: 4, pelin: 3, irmak: 4, buse: 2, nehir: 0 },
+        "Mart":    { yalin: 5, ikizler: 5, sarp: 4, emrah: 0, melis: 3, canitk: 3, can10asli: 2, cem: 0, poyraz: 3, eren: 3, pelin: 4, irmak: 3, buse: 0, nehir: 0 },
+        "Nisan":   { yalin: 3, ikizler: 6, sarp: 2, emrah: 0, melis: 4, canitk: 1, can10asli: 2, cem: 0, poyraz: 3, eren: 3, pelin: 2, irmak: 2, buse: 0, nehir: 0 },
+        "Mayıs":   { yalin: 5, ikizler: 4, sarp: 4, emrah: 0, melis: 3, canitk: 3, can10asli: 2, cem: 0, poyraz: 1, eren: 4, pelin: 2, irmak: 2, buse: 0, nehir: 0 },
+        "Haziran": { yalin: 1, ikizler: 5, sarp: 1, emrah: 0, melis: 1, canitk: 0, can10asli: 0, cem: 0, poyraz: 0, eren: 0, pelin: 0, irmak: 0, buse: 0, nehir: 0 }
+      },
+      monthlyRevenue: {
+        "Ağustos": { yalin: 3600,  ikizler: 0,     sarp: 0,    emrah: 0,    melis: 0,    canitk: 0,     can10asli: 0,    cem: 0,    poyraz: 0,    eren: 0,    pelin: 0,    irmak: 0,    buse: 0,     nehir: 0 },
+        "Eylül":   { yalin: 14400, ikizler: 4500,  sarp: 3900, emrah: 1250, melis: 0,    canitk: 0,     can10asli: 0,    cem: 0,    poyraz: 0,    eren: 0,    pelin: 0,    irmak: 0,    buse: 0,     nehir: 0 },
+        "Ekim":    { yalin: 9000,  ikizler: 6000,  sarp: 5200, emrah: 1250, melis: 4500, canitk: 2250,  can10asli: 1700, cem: 3000, poyraz: 0,    eren: 0,    pelin: 0,    irmak: 0,    buse: 0,     nehir: 0 },
+        "Kasım":   { yalin: 7200,  ikizler: 6000,  sarp: 5200, emrah: 0,    melis: 4500, canitk: 4500,  can10asli: 3400, cem: 2000, poyraz: 6000, eren: 3400, pelin: 0,    irmak: 0,    buse: 0,     nehir: 0 },
+        "Aralık":  { yalin: 1800,  ikizler: 6000,  sarp: 5200, emrah: 0,    melis: 6000, canitk: 9000,  can10asli: 5100, cem: 4000, poyraz: 6000, eren: 6800, pelin: 5700, irmak: 5700, buse: 12600, nehir: 0 },
+        "Ocak":    { yalin: 5400,  ikizler: 10500, sarp: 5200, emrah: 0,    melis: 4500, canitk: 10600, can10asli: 0,    cem: 2000, poyraz: 6000, eren: 1700, pelin: 9500, irmak: 9500, buse: 16200, nehir: 0 },
+        "Şubat":   { yalin: 5700,  ikizler: 6000,  sarp: 6100, emrah: 0,    melis: 7200, canitk: 9150,  can10asli: 3700, cem: 0,    poyraz: 4000, eren: 6800, pelin: 5700, irmak: 7600, buse: 3600,  nehir: 0 },
+        "Mart":    { yalin: 9000,  ikizler: 7500,  sarp: 6400, emrah: 0,    melis: 5400, canitk: 9150,  can10asli: 4000, cem: 0,    poyraz: 6000, eren: 5100, pelin: 7600, irmak: 5700, buse: 0,     nehir: 0 },
+        "Nisan":   { yalin: 5400,  ikizler: 9000,  sarp: 3200, emrah: 0,    melis: 7200, canitk: 3050,  can10asli: 4000, cem: 0,    poyraz: 6000, eren: 5100, pelin: 3800, irmak: 3800, buse: 0,     nehir: 0 },
+        "Mayıs":   { yalin: 9000,  ikizler: 6000,  sarp: 6400, emrah: 0,    melis: 5400, canitk: 9150,  can10asli: 4000, cem: 0,    poyraz: 2000, eren: 6800, pelin: 3800, irmak: 3800, buse: 0,     nehir: 0 },
+        "Haziran": { yalin: 1800,  ikizler: 7500,  sarp: 1600, emrah: 0,    melis: 1800, canitk: 0,     can10asli: 0,    cem: 0,    poyraz: 0,    eren: 0,    pelin: 0,    irmak: 0,    buse: 0,     nehir: 0 }
+      }
+    }
+  ]
+};
