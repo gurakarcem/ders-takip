@@ -1,0 +1,39 @@
+{
+  "name": "DersTakip Pro - Özel Ders & Ödeme Takibi",
+  "short_name": "DersTakip",
+  "description": "Öğrenci ders takip, ödeme, aylık tablo ve Google Takvim mobil uygulaması",
+  "start_url": "./index.html",
+  "id": "derstakip-pro-pwa",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "scope": "./",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "finance", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Yeni Ders Ekle",
+      "url": "./index.html#add-lesson",
+      "description": "Hızlıca yeni ders kaydı oluştur"
+    },
+    {
+      "name": "Ödeme Takibi",
+      "url": "./index.html#payments",
+      "description": "Ödeme durumları ve kasa takibi"
+    }
+  ]
+}
