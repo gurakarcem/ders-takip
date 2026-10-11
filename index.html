@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>DersTakip Pro - Özel Ders, Ödeme & Google Takvim Yönetim Sistemi</title>
+  
+  <!-- PWA & Mobil Uygulama Desteği -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="DersTakip">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+
+  <link rel="stylesheet" href="styles.css">
+  <!-- Chart.js CDN for interactive visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Üst Başlık & Kontroller -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-section">
+        <div class="brand-icon">🎓</div>
+        <div>
+          <div style="display: flex; align-items: center;">
+            <span class="brand-title">DersTakip Pro</span>
+            <span class="brand-badge">Özel Ders & Tahsilat Sistemi</span>
+          </div>
+          <div class="brand-subtitle">Öğrenci kaydı, ders başı ücret belirleme, ders girişi, ödeme kontrolü & Google Takvim</div>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <!-- Dönem Seçici (Her Sene İçin Yeni Yer) -->
+        <select id="periodSelect" class="select-period" title="Eğitim Yılı / Dönem Seçiniz"></select>
+
+        <!-- Hızlı Aksiyon Butonları -->
+        <button class="btn btn-primary" onclick="openAddLessonModal()">
+          <span>➕</span> Ders Kaydet
+        </button>
+
+        <button class="btn btn-secondary" onclick="openAddStudentModal()">
+          <span>👤</span> Yeni Öğrenci Kabulü
+        </button>
+
+        <button class="btn btn-google" onclick="switchTab('gcalendar')">
+          <span>📅</span> Google Takvim
+        </button>
+
+        <button class="btn btn-secondary" onclick="exportToCSV()" title="Aylık ders tablosunu Excel / CSV olarak indir">
+          <span>📊</span> Excel İndir
+        </button>
+
+        <button class="btn btn-secondary" onclick="openModal('modalMobileInstall')" title="Telefona uygulama olarak yükle">
+          <span>📱</span> Telefona Yükle
+        </button>
+
+        <button class="btn btn-secondary" onclick="openModal('modalBackup')" title="Yedekleme ve veri yönetimi">
+          <span>💾</span> Yedekle
+        </button>
+
+        <button class="btn btn-secondary btn-icon" onclick="window.print()" title="Yazdır veya PDF Kaydet">
+          <span>🖨️</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigasyon Sekmeleri -->
+  <nav class="app-nav">
+    <div class="nav-container">
+      <button class="nav-tab active" data-tab="dashboard">
+        <span>📊</span> Genel Bakış
+      </button>
+      <button class="nav-tab" data-tab="payments">
+        <span>💳</span> Ödeme & Tahsilat Takibi
+      </button>
+      <button class="nav-tab" data-tab="matrix">
+        <span>📈</span> Aylık Ders Sayıları Tablosu
+      </button>
+      <button class="nav-tab" data-tab="schedule">
+        <span>📑</span> Ders Tarihleri Çizelgesi
+      </button>
+      <button class="nav-tab" data-tab="gcalendar">
+        <span>📅</span> Google Takvim
+      </button>
+      <button class="nav-tab" data-tab="students">
+        <span>👥</span> Öğrenci Rehberi & Ücretler
+      </button>
+      <button class="nav-tab" data-tab="lessons">
+        <span>🗓️</span> Tüm Ders Kayıtları
+      </button>
+    </div>
+  </nav>
+
+  <!-- Ana İçerik -->
+  <main class="app-main">
+
+    <!-- KPI Özet Kartları (Tüm sekmelerin üstünde her an görünür) -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-label">Toplam Hak Ediş</div>
+          <div id="kpiTotalRevenue" class="kpi-value tabular-nums">0 ₺</div>
+          <div class="kpi-subtext">Yapılan tüm derslerin tutarı</div>
+        </div>
+        <div class="kpi-icon-box kpi-indigo">💰</div>
+      </div>
+
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-label">Yatan Para (Tahsil Edilen)</div>
+          <div id="kpiTotalPaid" class="kpi-value tabular-nums" style="color: var(--success);">0 ₺</div>
+          <div class="kpi-subtext">Ödemesi alınan dersler</div>
+        </div>
+        <div class="kpi-icon-box kpi-emerald">🟢</div>
+      </div>
+
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-label">Yatırılmayan (Bekleyen Borç)</div>
+          <div id="kpiTotalUnpaid" class="kpi-value tabular-nums" style="color: var(--danger);">0 ₺</div>
+          <div class="kpi-subtext">Henüz ödenmemiş dersler</div>
+        </div>
+        <div class="kpi-icon-box kpi-rose">🔴</div>
+      </div>
+
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-label">Toplam Yapılan Ders</div>
+          <div id="kpiTotalLessons" class="kpi-value tabular-nums">0 Ders</div>
+          <div class="kpi-subtext">Tamamlanan ders saati</div>
+        </div>
+        <div class="kpi-icon-box kpi-amber">📚</div>
+      </div>
+
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-label">Aktif Öğrenci</div>
+          <div id="kpiActiveStudents" class="kpi-value tabular-nums">0 Öğrenci</div>
+          <div class="kpi-subtext">Bu sene kayıtlı öğrenciler</div>
+        </div>
+        <div class="kpi-icon-box kpi-purple">👥</div>
+      </div>
+    </section>
+
+    <!-- 1. SEKME: DASHBOARD (GENEL BAKIŞ) -->
+    <div id="tab-dashboard" class="tab-pane active">
+      <div class="charts-grid">
+        <!-- Aylık Gelir & Ders Sayısı Grafiği -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">📈 Aylık Ders Sayısı ve Gelir Grafiği</div>
+              <div class="card-subtitle">Ağustos - Haziran döneminde aylık yapılan ders adetleri ve gelirler</div>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chartMonthlyRevenue"></canvas>
+          </div>
+        </div>
+
+        <!-- Tahsilat Durumu Grafiği -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">🥧 Tahsilat Durumu (Yatan vs Bekleyen)</div>
+              <div class="card-subtitle">Ders paralarının yatırılma oranı</div>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chartStudentDist"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Öğrenci Başarı ve Tahsilat Sıralama Tablosu -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">🏆 Öğrenci Ders ve Ödeme Durumu Özeti</div>
+            <div class="card-subtitle">Öğrenci bazında ders adetleri, toplam tutarlar ve ödeme durumu</div>
+          </div>
+          <button class="btn btn-secondary" onclick="switchTab('payments')">Ödeme Detaylarına Git →</button>
+        </div>
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Sıra</th>
+                <th>Öğrenci</th>
+                <th style="text-align: right;">Yapılan Ders</th>
+                <th style="text-align: right;">Toplam Tutar</th>
+                <th style="text-align: right;">Yatırılan</th>
+                <th style="text-align: center;">Ödeme Durumu</th>
+                <th>Gelir Oranı</th>
+              </tr>
+            </thead>
+            <tbody id="topStudentsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. SEKME: ÖDEME & TAHSİLAT TAKİBİ (Ders Parasını Yatırdı mı Yatıramadı mı?) -->
+    <div id="tab-payments" class="tab-pane">
+      
+      <!-- Öğrenci Tahsilat Özeti -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <div>
+            <div class="card-title">💳 Öğrenci Bakiye ve Ödeme Durumu Tablosu</div>
+            <div class="card-subtitle">Her öğrencinin belirlenen ders ücreti, yapılan toplam ders, yatırdığı para ve kalan borcu</div>
+          </div>
+          <button class="btn btn-primary" onclick="openAddLessonModal()">➕ Yeni Ders Kaydet</button>
+        </div>
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Öğrenci Adı</th>
+                <th style="text-align: right;">Belirlenen Ücret</th>
+                <th style="text-align: right;">Yapılan Ders</th>
+                <th style="text-align: right;">Hak Edilen Toplam</th>
+                <th style="text-align: right;">Yatırılan Para</th>
+                <th style="text-align: right;">Kalan Borç</th>
+                <th style="text-align: center;">Durum</th>
+                <th style="text-align: right;">İşlem</th>
+              </tr>
+            </thead>
+            <tbody id="studentPaymentsSummaryBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Ders Bazlı Ödeme Kontrol Listesi -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">🔍 Yapılan Her Ders İçin Ödeme Kontrolü</div>
+            <div class="card-subtitle">Ders parasını yatırıp yatırmadığını kontrol edin, tek tıkla durumu değiştirin</div>
+          </div>
+        </div>
+
+        <!-- Filtreler -->
+        <div class="filter-bar">
+          <div class="filter-pills">
+            <button class="filter-pill payment-filter-btn active" data-filter="all" onclick="setPaymentFilter('all')">
+              Tüm Dersler
+            </button>
+            <button class="filter-pill payment-filter-btn" data-filter="unpaid" onclick="setPaymentFilter('unpaid')">
+              🔴 Yatırılmayanlar (Bekleyenler)
+            </button>
+            <button class="filter-pill payment-filter-btn" data-filter="paid" onclick="setPaymentFilter('paid')">
+              🟢 Yatırılanlar (Ödenenler)
+            </button>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <select id="filterPaymentStudentSelect" class="select-period" style="font-size: 0.85rem;" onchange="handlePaymentStudentFilterChange(this)">
+              <option value="all">Tüm Öğrenciler</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Ders Tarihi</th>
+                <th>Öğrenci Adı</th>
+                <th>Ay</th>
+                <th style="text-align: right;">Ders Ücreti</th>
+                <th style="text-align: center;">Parayı Yatırdı mı? (Tıkla & Değiştir)</th>
+                <th style="text-align: center;">Düzenle</th>
+                <th style="text-align: center;">Google Takvim</th>
+                <th>Açıklama / Not</th>
+              </tr>
+            </thead>
+            <tbody id="lessonsPaymentTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 3. SEKME: AYLIK DERS SAYILARI TABLOSU (Aylık kaç ders yapıldığı tablolanıyor) -->
+    <div id="tab-matrix" class="tab-pane">
+      <div class="matrix-container">
+        <div class="matrix-toolbar">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <h3 id="matrixActiveTitle" style="font-size: 1.05rem; font-weight: 700;">Aylık Kaç Ders Yapıldığı Tablosu</h3>
+            <div class="toggle-group">
+              <button id="btnMatrixLessons" class="toggle-btn active">📚 Ders Sayıları</button>
+              <button id="btnMatrixRevenue" class="toggle-btn">💰 Gelirler (₺)</button>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span style="font-size: 0.8rem; color: var(--slate-500);">💡 İpucu: Hücrelere tıklayarak doğrudan düzenleyebilirsiniz.</span>
+            <button class="btn btn-secondary" onclick="exportToCSV()">
+              📥 Excel/CSV Olarak İndir
+            </button>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="matrix-table">
+            <thead>
+              <tr id="matrixHeaderRow"></tr>
+            </thead>
+            <tbody id="matrixBody"></tbody>
+            <tfoot>
+              <tr id="matrixFooterRow" class="total-row"></tr>
+              <tr id="matrixAvgRow" style="background: #ffffff; font-weight: 600; color: var(--slate-600);"></tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. SEKME: DERS TARİHLERİ ÇİZELGESİ -->
+    <div id="tab-schedule" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">📑 Kronolojik Öğrenci Ders Günleri Çizelgesi</div>
+            <div class="card-subtitle">Her öğrencinin ders aldığı günlerin 1., 2., 3. ders sıralı listesi (🟢 Ödendi / 🔴 Yatırılmadı)</div>
+          </div>
+          <button class="btn btn-primary" onclick="openAddLessonModal()">➕ Yeni Ders Kaydet</button>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--slate-500); margin-bottom: 1rem;">
+          Bir tarihe tıklayarak tarihi düzenleyebilir veya silebilirsiniz. Tablonun altındaki <strong>"+ Tarih"</strong> butonlarına basarak hızlıca ders ekleyebilirsiniz.
+        </p>
+        <div id="scheduleMatrixContainer" class="dates-matrix"></div>
+      </div>
+    </div>
+
+    <!-- 5. SEKME: GOOGLE TAKVİM ENTEGRASYONU (YENİ) -->
+    <div id="tab-gcalendar" class="tab-pane">
+      <!-- Google Takvim Başlık & Aksiyon Kartı -->
+      <div class="gcal-hero-card">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="width: 52px; height: 52px; background: #ffffff; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; box-shadow: var(--shadow-sm);">
+            📅
+          </div>
+          <div>
+            <h3 style="font-size: 1.25rem; font-weight: 800; color: #1a73e8;">Google Takvim Entegrasyonu</h3>
+            <p style="font-size: 0.85rem; color: var(--slate-600);">
+              Derslerinizi tek tıkla Google Takvim'e ekleyin, toplu içe aktarın ve canlı olarak burada takip edin.
+            </p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+          <button class="btn btn-primary" onclick="exportAllPeriodsToGoogleCalendarICS()" style="background: #1a73e8; border-color: #1a73e8; font-weight: 700;">
+            📥 TÜM YILLARIN DERSLERİNİ Google Takvim İçin İndir (562+ Ders .ics)
+          </button>
+          <button class="btn btn-secondary" onclick="exportToGoogleCalendarICS()">
+            📥 Sadece Bu Yılın Derslerini İndir (.ics)
+          </button>
+          <button class="btn btn-google" onclick="openGoogleCalendarImportPage()">
+            🌐 Google Takvim İçe Aktarma Sayfası (Tıkla & Yükle)
+          </button>
+        </div>
+      </div>
+
+      <!-- Bilgi & Ayarlar Kutusu -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <div class="card-title">⚙️ Google Takvim Ayarları ve Kullanım Rehberi</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+          <!-- Sol: Gmail Adresi Bağlama -->
+          <div>
+            <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--slate-800);">
+              1. Canlı Google Takviminizi Buraya Bağlayın
+            </h4>
+            <p style="font-size: 0.825rem; color: var(--slate-500); margin-bottom: 0.75rem;">
+              Gmail adresinizi girdiğinizde aşağıdaki pencerede Google Takviminiz canlı olarak görüntülenir.
+            </p>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="email" id="gcalEmailInput" class="form-control" placeholder="Örn: adiniz@gmail.com">
+              <button class="btn btn-primary" onclick="handleSaveGCalEmail()">Kaydet</button>
+            </div>
+          </div>
+
+          <!-- Sağ: Toplu Yükleme Talimatı -->
+          <div style="background: var(--slate-50); padding: 1rem; border-radius: 10px; border: 1px solid var(--slate-200);">
+            <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.35rem; color: var(--slate-800);">
+              2. Tüm Dersleri Tek Seferde Google Takvim'e İşleme
+            </h4>
+            <ol style="font-size: 0.825rem; color: var(--slate-600); padding-left: 1.25rem; line-height: 1.6;">
+              <li>Yukarıdaki <strong>"TÜM YILLARIN DERSLERİNİ Google Takvim İçin İndir (562+ Ders .ics)"</strong> butonuna basın (veya klasördeki <code>Tum_Dersler_Google_Takvim.ics</code> dosyasını kullanın).</li>
+              <li><strong>"Google Takvim İçe Aktarma Sayfası"</strong> butonuna basın.</li>
+              <li>Açılan Google Takvim sayfasında dosyayı seçip <strong>"İçe Aktar"</strong> butonuna tıklayın. 562 dersin tamamı Google Takvim'inize saniyeler içinde işlenir!</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gömülü Google Takvim Çerçevesi -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🗓️ Canlı Google Takvim Görünümü</div>
+        </div>
+        <div id="gcalEmbedContainer" class="gcal-embed-wrapper"></div>
+      </div>
+    </div>
+
+    <!-- 6. SEKME: ÖĞRENCİ REHBERİ (YENİ ÖĞRENCİ KABULÜ & ÜCRET BELİRLEME) -->
+    <div id="tab-students" class="tab-pane">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div>
+          <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--slate-900);">👥 Kayıtlı Öğrenciler ve Ders Ücretleri</h2>
+          <p style="font-size: 0.85rem; color: var(--slate-500);">Her sene yeni gelen öğrenciler için burada yer açılır ve ders parası belirlenir</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAddStudentModal()">
+          <span>👤</span> Yeni Öğrenci Kabulü Yap
+        </button>
+      </div>
+      <div id="studentsGrid" class="students-grid"></div>
+    </div>
+
+    <!-- 7. SEKME: TÜM DERS KAYITLARI -->
+    <div id="tab-lessons" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">🗓️ Tüm Ders Kayıtları (Kronolojik Akış)</div>
+            <div class="card-subtitle">Yapılan tüm derslerin tarih, öğrenci, ücret, ödeme durumu ve Google Takvim entegrasyonu</div>
+          </div>
+          <button class="btn btn-primary" onclick="openAddLessonModal()">➕ Ders Kaydet</button>
+        </div>
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Ders Tarihi</th>
+                <th>Öğrenci Adı</th>
+                <th>Ay</th>
+                <th style="text-align: right;">Ders Ücreti</th>
+                <th style="text-align: center;">Ödeme Durumu</th>
+                <th style="text-align: center;">Düzenle</th>
+                <th style="text-align: center;">Google Takvim</th>
+              </tr>
+            </thead>
+            <tbody id="lessonsListBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: HIZLI DERS KAYDET -->
+  <div id="modalAddLesson" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">➕ Yapılan Dersi Kaydet</h3>
+        <button class="modal-close" onclick="closeModal('modalAddLesson')">&times;</button>
+      </div>
+      <form onsubmit="handleSaveLesson(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Öğrenci Seçiniz *</label>
+            <select id="lessonStudentSelect" class="form-control" required></select>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Ders Tarihi *</label>
+              <input type="date" id="lessonDateInput" class="form-control" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Ders Başlangıç Saati</label>
+              <input type="time" id="lessonTimeInput" class="form-control" value="14:00">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Ders Süresi</label>
+              <select id="lessonDurationSelect" class="form-control">
+                <option value="60" selected>60 Dakika (1 Saat)</option>
+                <option value="90">90 Dakika (1.5 Saat)</option>
+                <option value="120">120 Dakika (2 Saat)</option>
+                <option value="45">45 Dakika</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Ders Ücreti (₺) *</label>
+              <input type="number" id="lessonRateInput" class="form-control" placeholder="Örn: 3500" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ders Parası Yatırıldı mı? *</label>
+            <select id="lessonPaidSelect" class="form-control">
+              <option value="unpaid">🔴 Hayır, Yatırılmadı (Ödeme Bekleniyor)</option>
+              <option value="paid">🟢 Evet, Ödendi (Yatırıldı)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">İşlenen Konu / Ders Notu</label>
+            <input type="text" id="lessonNoteInput" class="form-control" placeholder="Örn: Limit soru çözümü, Fonksiyonlar">
+          </div>
+          <div class="form-group" style="background: var(--google-light); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid #d2e3fc; display: flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" id="lessonAddToGCalCheckbox" checked style="width: 18px; height: 18px; cursor: pointer;">
+            <label for="lessonAddToGCalCheckbox" style="font-size: 0.85rem; font-weight: 600; color: #1a73e8; cursor: pointer;">
+              📅 Kaydettikten sonra bu dersi Google Takvim'de de aç
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modalAddLesson')">İptal</button>
+          <button type="submit" class="btn btn-primary">Dersi Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: GEÇMİŞ DERSİ DÜZENLE (FİYAT, TARİH, ÖDEME DEĞİŞTİRME & SİLME) -->
+  <div id="modalEditLesson" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">✏️ Geçmiş Dersi Düzenle</h3>
+        <button class="modal-close" onclick="closeModal('modalEditLesson')">&times;</button>
+      </div>
+      <form id="formEditLesson" onsubmit="handleSaveEditLesson(event)">
+        <input type="hidden" id="editLessonId">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Öğrenci *</label>
+            <select id="editLessonStudentSelect" class="form-control" required></select>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Ders Tarihi *</label>
+              <input type="date" id="editLessonDateInput" class="form-control" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Ders Saati</label>
+              <input type="time" id="editLessonTimeInput" class="form-control" value="14:00">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Ders Ücreti (₺) *</label>
+              <input type="number" id="editLessonRateInput" class="form-control" placeholder="Örn: 3500" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Ödeme Durumu *</label>
+              <select id="editLessonPaidSelect" class="form-control">
+                <option value="paid">🟢 Ödendi (Yatırıldı)</option>
+                <option value="unpaid">🔴 Yatırılmadı (Bekliyor)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">İşlenen Konu / Not</label>
+            <input type="text" id="editLessonNoteInput" class="form-control" placeholder="Örn: Limit ve Türev soru çözümü">
+          </div>
+        </div>
+        <div class="modal-footer" style="justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+          <button type="button" class="btn btn-danger" onclick="handleDeleteCurrentLesson()">
+            🗑️ Dersi Sil
+          </button>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-google" onclick="openGoogleCalendarForCurrentEditLesson()" title="Bu dersi Google Takvim'de aç">
+              📅 Google Takvim'de Aç
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="closeModal('modalEditLesson')">İptal</button>
+            <button type="submit" class="btn btn-primary">Değişiklikleri Kaydet</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: YENİ ÖĞRENCİ KABULÜ & DERS PARASI BELİRLEME -->
+  <div id="modalStudent" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalStudentTitle" class="modal-title">👤 Yeni Öğrenci Kabulü ve Ücret Belirleme</h3>
+        <button class="modal-close" onclick="closeModal('modalStudent')">&times;</button>
+      </div>
+      <form id="formStudent" onsubmit="handleSaveStudent(event)">
+        <input type="hidden" id="studentEditId">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Öğrenci Adı Soyadı *</label>
+            <input type="text" id="studentNameInput" class="form-control" required placeholder="Örn: Ali Yılmaz">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Sınıfı / Seviyesi</label>
+            <input type="text" id="studentGradeInput" class="form-control" placeholder="Örn: 10. Sınıf, 12. Sınıf YKS, IB">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ders Başı Belirlenen Ücret (₺) *</label>
+            <input type="number" id="studentRateInput" class="form-control" placeholder="Örn: 3500" required>
+            <span style="font-size: 0.75rem; color: var(--slate-500);">Öğrenci için yapılan her derse bu ücret otomatik uygulanacaktır.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Veli / Öğrenci Telefonu</label>
+            <input type="text" id="studentPhoneInput" class="form-control" placeholder="Örn: 0532 123 4567">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Özel Notlar</label>
+            <input type="text" id="studentNoteInput" class="form-control" placeholder="Örn: Kanada, Hafta sonu grubu, Hedef Tıp">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modalStudent')">İptal</button>
+          <button type="submit" class="btn btn-primary">Öğrenciyi Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ÖĞRENCİ DETAY VE TAHSİLAT RAPORU -->
+  <div id="modalStudentDetails" class="modal-overlay">
+    <div class="modal" style="max-width: 640px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Öğrenci Detay ve Hesap Dökümü</h3>
+        <button class="modal-close" onclick="closeModal('modalStudentDetails')">&times;</button>
+      </div>
+      <div id="studentDetailBody" class="modal-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modalStudentDetails')">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: YENİ EĞİTİM YILI (DÖNEM) BAŞLAT -->
+  <div id="modalNewPeriod" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">➕ Yeni Eğitim Yılı Başlat</h3>
+        <button class="modal-close" onclick="closeModal('modalNewPeriod')">&times;</button>
+      </div>
+      <form id="formNewPeriod" onsubmit="handleCreateNewPeriod(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Eğitim Yılı Adı *</label>
+            <input type="text" id="newPeriodNameInput" class="form-control" required placeholder="Örn: 2027 - 2028 Eğitim Yılı">
+          </div>
+          <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+            <input type="checkbox" id="copyStudentsCheckbox" checked style="width: 18px; height: 18px;">
+            <label for="copyStudentsCheckbox" style="font-size: 0.9rem; font-weight: 500; cursor: pointer;">
+              Mevcut öğrencileri bu yeni seneye devret (Yeni gelenler ayrıca eklenebilir)
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modalNewPeriod')">İptal</button>
+          <button type="submit" class="btn btn-primary">Yeni Seneyi Başlat</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: YEDEKLEME VE VERİ YÖNETİMİ -->
+  <div id="modalBackup" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">💾 Veri Yedekleme, Google Drive & Kurtarma</h3>
+        <button class="modal-close" onclick="closeModal('modalBackup')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- GOOGLE DRIVE YEDEKLEME KUTUSU -->
+        <div style="margin-bottom: 1.5rem; padding: 1.15rem; background: #e8f0fe; border-radius: 12px; border: 1px solid #d2e3fc;">
+          <h4 style="font-weight: 700; color: #1a73e8; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>☁️</span> Google Drive Bulut Yedekleme & Telefon Senkronu
+          </h4>
+          <p style="font-size: 0.825rem; color: var(--slate-600); margin-bottom: 0.75rem;">
+            Verilerinizi Google Drive'a yükleyerek hem bulutta güvende tutabilir hem de telefonunuzdan güncel verilerinize ulaşabilirsiniz.
+          </p>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="exportJSONBackup('DersTakip_GoogleDrive_Yedek.json')">
+              📥 Google Drive Yedeği İndir (.json)
+            </button>
+            <button class="btn btn-google" onclick="window.open('https://drive.google.com/drive/my-drive', '_blank')">
+              🌐 Google Drive'ı Aç
+            </button>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <h4 style="font-weight: 700; margin-bottom: 0.35rem;">1. Bilgisayara Yedek İndir</h4>
+          <p style="font-size: 0.825rem; color: var(--slate-500); margin-bottom: 0.75rem;">
+            Tüm öğrencileri, ders başı ücretleri, ders kayıtlarını ve ödeme durumlarını tek bir JSON dosyası olarak indirir.
+          </p>
+          <button class="btn btn-secondary" onclick="exportJSONBackup()">
+            📥 Standart JSON Yedeği İndir
+          </button>
+        </div>
+
+        <div style="margin-bottom: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--slate-200);">
+          <h4 style="font-weight: 700; margin-bottom: 0.35rem;">2. Yedekten Geri Yükle (Google Drive / Bilgisayar)</h4>
+          <p style="font-size: 0.825rem; color: var(--slate-500); margin-bottom: 0.75rem;">
+            Google Drive'dan veya bilgisayarınızdan bir yedek dosyasını seçerek tüm verileri geri yükleyebilirsiniz.
+          </p>
+          <input type="file" id="backupFileInput" accept=".json" onchange="importJSONBackup(event)" style="font-size: 0.85rem;">
+        </div>
+
+        <div style="padding-top: 1rem; border-top: 1px solid var(--slate-200);">
+          <h4 style="font-weight: 700; color: var(--danger); margin-bottom: 0.35rem;">3. Fabrika Ayarlarına Sıfırla</h4>
+          <p style="font-size: 0.825rem; color: var(--slate-500); margin-bottom: 0.75rem;">
+            Tüm verileri ilk haline döndürür.
+          </p>
+          <button class="btn btn-danger" onclick="resetToDefaultData()">
+            ⚠️ Orijinal Verilere Sıfırla
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modalBackup')">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TELEFONA UYGULAMA OLARAK YÜKLEME REHBERİ -->
+  <div id="modalMobileInstall" class="modal-overlay">
+    <div class="modal" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3 class="modal-title">📱 Telefona Uygulama Olarak Yükleme (PWA)</h3>
+        <button class="modal-close" onclick="closeModal('modalMobileInstall')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <img src="icon-192.png" alt="DersTakip Pro Logo" style="width: 72px; height: 72px; border-radius: 18px; box-shadow: var(--shadow); margin-bottom: 0.75rem;">
+          <h4 style="font-size: 1.15rem; font-weight: 800; color: var(--slate-900);">DersTakip Pro Mobil Uygulaması</h4>
+          <p style="font-size: 0.85rem; color: var(--slate-500);">
+            App Store veya Play Store hesabı gerekmeden, telefonunuzun ana ekranına tam ekran çalışan bir mobil uygulama olarak yükleyebilirsiniz.
+          </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+          <!-- iPhone / iOS -->
+          <div style="background: var(--slate-50); padding: 1rem; border-radius: 12px; border: 1px solid var(--slate-200);">
+            <div style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--slate-800);">🍏 iPhone (iOS)</div>
+            <ol style="font-size: 0.825rem; color: var(--slate-700); padding-left: 1.25rem; line-height: 1.6; margin: 0;">
+              <li>Uygulamayı <strong>Safari</strong> ile açın.</li>
+              <li>Ekranın altındaki <strong>Paylaş</strong> (kare ve yukarı ok ⎋) simgesine dokunun.</li>
+              <li>Aşağı kaydırıp <strong>"Ana Ekrana Ekle"</strong> seçeneğini seçin.</li>
+              <li>Sağ üstteki <strong>"Ekle"</strong> butonuna basın. Uygulama logonuz ana ekranınıza eklenecektir!</li>
+            </ol>
+          </div>
+
+          <!-- Android -->
+          <div style="background: var(--slate-50); padding: 1rem; border-radius: 12px; border: 1px solid var(--slate-200);">
+            <div style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--slate-800);">🤖 Android</div>
+            <ol style="font-size: 0.825rem; color: var(--slate-700); padding-left: 1.25rem; line-height: 1.6; margin: 0;">
+              <li>Uygulamayı <strong>Chrome</strong> ile açın.</li>
+              <li>Sağ üstteki <strong>üç nokta (⋮)</strong> menüsüne dokunun.</li>
+              <li><strong>"Uygulamayı Yükle"</strong> veya <strong>"Ana Ekrana Ekle"</strong> seçeneğine dokunun.</li>
+              <li>Onaylayın. Uygulama tıpkı Play Store'dan indirilmiş gibi telefonunuza kurulacaktır!</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- 2 Kolay Telefon Bağlantı Yolu -->
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 1rem; border-radius: 10px;">
+          <h5 style="font-weight: 700; color: #166534; margin-bottom: 0.35rem;">🚀 Telefonunuzdan Nasıl Açacaksınız?</h5>
+          <p style="font-size: 0.825rem; color: #15803d; line-height: 1.5; margin: 0;">
+            <strong>1. Yerel Wi-Fi İle:</strong> Klasördeki <code>TelefondaAc.bat</code> dosyasına çift tıklayın ve ekrandaki Wi-Fi adresini telefonunuzda açın.<br>
+            <strong>2. İnternet Yayını İle:</strong> Klasörü ücretsiz bir barındırıcıya (örn: Netlify Drop) yükleyerek kalıcı bir bağlantı adresi alabilirsiniz.
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="closeModal('modalMobileInstall')">Anladım</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBİL ALT NAVİGASYON BARI (Telefon ekranları için) -->
+  <nav class="mobile-bottom-nav">
+    <button class="mobile-nav-btn active" data-tab="tab-dashboard" onclick="switchTab('dashboard')">
+      <span class="m-icon">📊</span>
+      <span class="m-label">Özet</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="tab-payments" onclick="switchTab('payments')">
+      <span class="m-icon">💳</span>
+      <span class="m-label">Ödeme</span>
+    </button>
+    <button class="mobile-nav-btn mobile-nav-fab" onclick="openAddLessonModal()" title="Yeni Ders Ekle">
+      <span class="m-icon">➕</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="tab-matrix" onclick="switchTab('matrix')">
+      <span class="m-icon">📈</span>
+      <span class="m-label">Matris</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="tab-students" onclick="switchTab('students')">
+      <span class="m-icon">👥</span>
+      <span class="m-label">Öğrenci</span>
+    </button>
+  </nav>
+
+  <!-- Toast Bildirim -->
+  <div id="appToast" class="toast"></div>
+
+  <!-- Veritabanı ve Mantık Betikleri -->
+  <script src="initial_data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
