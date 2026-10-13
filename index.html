@@ -39,6 +39,13 @@
         <!-- Dönem Seçici (Her Sene İçin Yeni Yer) -->
         <select id="periodSelect" class="select-period" title="Eğitim Yılı / Dönem Seçiniz"></select>
 
+        <!-- Bulut Senkronizasyon Butonu (Cihazlar Arası Eşitleme) -->
+        <button id="btnCloudSync" class="btn btn-cloud" onclick="openCloudSyncModal()" title="Cihazlar Arası Bulut Senkronizasyonu">
+          <span id="cloudStatusDot" class="status-dot green"></span>
+          <span id="cloudStatusIcon">☁️</span>
+          <span id="cloudStatusText">Bulut Eşitle</span>
+        </button>
+
         <!-- Hızlı Aksiyon Butonları -->
         <button class="btn btn-primary" onclick="openAddLessonModal()">
           <span>➕</span> Ders Kaydet
@@ -779,6 +786,106 @@
     </div>
   </div>
 
+  <!-- MODAL: CİHAZLAR ARASI BULUT SENKRONİZASYONU -->
+  <div id="modalCloudSync" class="modal-overlay">
+    <div class="modal" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <span>☁️</span> Cihazlar Arası Bulut Senkronizasyonu
+        </h3>
+        <button class="modal-close" onclick="closeModal('modalCloudSync')">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Canlı Eşitleme Durumu Kutusu -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <div style="font-size: 0.8rem; font-weight: 600; color: var(--slate-500); text-transform: uppercase;">Senkronizasyon Durumu</div>
+            <div id="cloudModalStatusText" style="font-size: 1rem; font-weight: 700; color: var(--slate-800); margin-top: 2px;">
+              🟢 Tüm veriler güncel ve senkronize
+            </div>
+            <div id="cloudModalLastInfo" style="font-size: 0.8rem; color: var(--slate-500); margin-top: 2px;">
+              Son işlem: Henüz eşitlenmedi
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary" onclick="triggerManualCloudSync()" style="gap: 0.35rem;">
+            <span>🔄</span> Şimdi Eşitle
+          </button>
+        </div>
+
+        <!-- Açıklama Notu -->
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 0.85rem; margin-bottom: 1.25rem; font-size: 0.825rem; color: #1e40af; line-height: 1.5;">
+          💡 <strong>Nasıl Çalışır?</strong> İster bilgisayarınızdan ister telefonunuzdan girin; girdiğiniz her ders ve ödeme bilgisi anında ortak bulutta saklanır. Başka bir cihazda siteyi açtığınızda <strong>en son girilen güncel liste</strong> otomatik olarak önünüze gelir.
+        </div>
+
+        <!-- 1. SEÇENEK: Google ile 1-Tıkla Bağlan (Puter Bulutu - Sıfır Kurulum) -->
+        <div class="cloud-sync-card" id="cardPuterSync">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <div style="font-weight: 700; color: var(--slate-800); display: flex; align-items: center; gap: 0.4rem;">
+              <span>🌐</span> 1. Seçenek: Google / Puter ile 1-Tıkla Bağlan
+            </div>
+            <span class="badge" style="background: #dbeafe; color: #1d4ed8; font-size: 0.725rem; padding: 2px 8px; border-radius: 999px;">Tavsiye Edilen</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--slate-600); margin-bottom: 0.75rem;">
+            Hiçbir veritabanı veya teknik ayar gerekmez. Sadece Google hesabınızla giriş yapın; tüm cihazlarınız otomatik olarak aynı hesaba bağlanır.
+          </p>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <button type="button" id="btnPuterAuth" class="btn btn-google" onclick="handlePuterAuth()">
+              <span>🔑</span> Google ile Giriş Yap & Bağlan
+            </button>
+            <span id="puterAuthStatus" style="font-size: 0.8rem; color: var(--slate-500);"></span>
+          </div>
+        </div>
+
+        <!-- 2. SEÇENEK: Google Firebase Realtime Database (Alternatif) -->
+        <div class="cloud-sync-card" id="cardFirebaseSync">
+          <div style="font-weight: 700; color: var(--slate-800); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>🔥</span> 2. Seçenek: Firebase Realtime Database (Google)
+          </div>
+          <p style="font-size: 0.8rem; color: var(--slate-600); margin-bottom: 0.75rem;">
+            Kendi Google Firebase Realtime Database URL'nizi bağlayabilirsiniz.
+          </p>
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label style="font-size: 0.8rem; font-weight: 600; color: var(--slate-700);">Firebase Veritabanı URL'si:</label>
+            <input type="url" id="cloudFirebaseUrlInput" class="form-control" placeholder="https://ornek-proje-default-rtdb.firebaseio.com/ders_data.json" style="font-size: 0.85rem;">
+          </div>
+          <button type="button" class="btn btn-secondary" onclick="saveFirebaseCloudConfig()">
+            <span>💾</span> Firebase Ayarını Kaydet & Bağlan
+          </button>
+        </div>
+
+        <!-- 📱 TELEFON İLE EŞLEŞTİRME (QR & LINK) -->
+        <div style="border-top: 1px solid var(--slate-200); padding-top: 1rem; margin-top: 1rem;">
+          <h4 style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>📱</span> Telefonunuzu Bu Cihazla Eşleştirin
+          </h4>
+          <p style="font-size: 0.8rem; color: var(--slate-500); margin-bottom: 0.75rem;">
+            Bilgisayardaki bulut ayarlarınızı telefonunuza tek tek yazmanıza gerek yok!
+          </p>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary" onclick="toggleCloudQrCode()">
+              <span>📷</span> Telefona QR Kodu Göster
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="copyCloudShareLink()">
+              <span>📋</span> Telefon Linkini Kopyala (WhatsApp)
+            </button>
+          </div>
+          
+          <div id="cloudQrContainer" class="qr-preview-container" style="display: none;">
+            <img id="cloudQrImage" class="qr-image" alt="Telefon Eşleştirme QR Kodu">
+            <div style="font-size: 0.8rem; color: var(--slate-600); font-weight: 500;">
+              Telefonunuzun kamerasıyla bu QR kodu okutarak doğrudan açabilirsiniz.
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="closeModal('modalCloudSync')">Tamam</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MOBİL ALT NAVİGASYON BARI (Telefon ekranları için) -->
   <nav class="mobile-bottom-nav">
     <button class="mobile-nav-btn active" data-tab="tab-dashboard" onclick="switchTab('dashboard')">
@@ -806,6 +913,8 @@
   <div id="appToast" class="toast"></div>
 
   <!-- Veritabanı ve Mantık Betikleri -->
+  <script src="https://js.puter.com/v2/"></script>
+  <script src="cloud_sync.js"></script>
   <script src="initial_data.js"></script>
   <script src="app.js"></script>
 </body>

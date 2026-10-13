@@ -83,8 +83,20 @@ Geçmişte işlenmiş herhangi bir dersin fiyatını, tarihini, saatini veya öd
   - **Ödeme Durumu:** `🟢 Ödendi` veya `🔴 Yatırılmadı` olarak ayarlanabilir.
   - **Dersi Silme:** Açılan pencerenin sol altındaki **`🗑️ Dersi Sil`** butonu ile yanlış girilmiş dersleri tek tıkla silebilirsiniz.
 
-### 6️⃣ Google Drive'a Yükleme ve Bulut Yedekleme (☁️)
-Çalışmanızı güvenle Google Drive'a yüklemek ve telefonunuzla senkronize etmek için:
+### 6️⃣ Cihazlar Arası Canlı Bulut Senkronizasyonu (Telefon & Bilgisayar Eşitleme ☁️)
+Program artık **hangi cihazdan girerseniz girin en son verilerinizi otomatik eşitleyecek** canlı bulut motoruna sahiptir:
+- **Nasıl Çalışır?**
+  - Bilgisayardan ders veya ödeme girdiğinizde anında buluta yazılır.
+  - Telefonunuzdan siteyi açtığınızda bilgisayardan girilen en güncel liste anında yüklenir.
+  - Telefonunuzdan yeni ders eklediğinizde ise bilgisayarınızdaki sekme saniyeler içinde yeni verilerle güncellenir.
+- **Nasıl Başlatılır?**
+  1. Üst bardaki **`☁️ Bulut Eşitle`** butonuna tıklayın.
+  2. **1. Seçenek (Önerilen):** "Google ile Giriş Yap & Bağlan" butonuna tıklayarak tek tıkla hesabınızı bağlayın.
+  3. **Telefonu Eşleştirme:** "Telefona QR Kodu Göster" butonuna basarak ekrandaki QR kodu telefonunuzun kamerasıyla okutun veya "Telefon Linkini Kopyala" ile kendinize WhatsApp'tan gönderin.
+  4. Telefonunuz anında aynı bulut veritabanına bağlanacak ve sıfır ayarla her iki cihazınız da ortak veriyi kullanacaktır!
+
+### 7️⃣ Manuel Dosya Yedeği Alma & Google Drive (💾)
+Çalışmanızı dosya olarak da güvenle saklamak için:
 - **1 Tıkla Yedekleme & Drive Açma:**
   - Klasördeki **[`GoogleDrive_Yedekle.bat`](file:///c:/Users/gurak/Desktop/%C3%A7al%C4%B1%C5%9Fma/GoogleDrive_Yedekle.bat)** dosyasına çift tıklayın.
   - Program tüm dosyalarınızı tek bir sıkıştırılmış **[`DersTakip_GoogleDrive_Yedek.zip`](file:///c:/Users/gurak/Desktop/%C3%A7al%C4%B1%C5%9Fma/DersTakip_GoogleDrive_Yedek.zip)** paketine dönüştürür ve Google Drive'ınızı otomatik olarak tarayıcınızda açar.

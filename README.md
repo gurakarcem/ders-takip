@@ -28,6 +28,7 @@
 | 🗓️ Google Takvim | Dersleri tek tıkla Google Takvim'e aktarma (.ics) |
 | 📱 PWA | Telefona uygulama olarak kurulabilir |
 | 💾 Çevrimdışı | İnternetsiz de çalışır (Service Worker) |
+| ☁️ Bulut Senkronu | Cihazlar arası anlık eşitleme: telefondan veya bilgisayardan girilen en son veri her yerde otomatik güncellenir |
 | 🔄 Yedekleme | JSON yedek alma ve Google Drive senkronu |
 
 ## 🛠️ Teknoloji
