@@ -73,7 +73,9 @@ function loadData() {
   // Zaman damgası ve cihaz kontrolü
   if (appState.data) {
     if (!appState.data._updatedAt) {
-      appState.data._updatedAt = Date.now();
+      // Önemli: Henüz zaman damgası olmayan eski yerel veriler için 0 atanır;
+      // böylece buluttaki güncel derslerin üzerine yazılması engellenir!
+      appState.data._updatedAt = 0;
     }
     if (!appState.data._lastDevice && window.CloudSync) {
       appState.data._lastDevice = window.CloudSync.getDeviceName();
@@ -1922,7 +1924,20 @@ document.addEventListener("DOMContentLoaded", initApp);
 if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.protocol === 'http:')) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./service-worker.js')
-      .then(reg => console.log('DersTakip Service Worker aktif:', reg.scope))
+      .then(reg => {
+        console.log('DersTakip Service Worker aktif:', reg.scope);
+        reg.onupdatefound = () => {
+          const installingWorker = reg.installing;
+          if (installingWorker) {
+            installingWorker.onstatechange = () => {
+              if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('Yeni sürüm hazır, taze verilerle güncelleniyor...');
+                window.location.reload();
+              }
+            };
+          }
+        };
+      })
       .catch(err => console.log('Service Worker kaydı atlandı:', err));
   });
 }

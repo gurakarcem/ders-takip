@@ -385,6 +385,15 @@
       return;
     }
 
+    if (currentStatus === 'not_connected') {
+      btn.classList.add('unsynced');
+      if (dot) dot.className = 'status-dot yellow';
+      if (icon) icon.textContent = '☁️';
+      text.textContent = 'Bulut: Bağlan';
+      btn.title = 'Telefon ve iPad arasında canlı eşitleme için lütfen Google ile bağlanın.';
+      return;
+    }
+
     if (currentStatus === 'success' && config.lastSyncedAt) {
       btn.classList.add('success');
       if (dot) dot.className = 'status-dot green';
@@ -425,10 +434,22 @@
     checkUrlParams();
     updateUIBadge();
 
-    // Sayfa açıldığında otomatik eşitle
-    setTimeout(() => {
-      sync(false);
-    }, 800);
+    // Oturum durumunu kontrol et ve eşitle
+    if (config.provider === 'puter' && window.puter && window.puter.auth) {
+      window.puter.auth.isSignedIn().then((signedIn) => {
+        if (!signedIn) {
+          updateUIBadge('not_connected');
+        } else {
+          sync(false);
+        }
+      }).catch(() => {
+        sync(false);
+      });
+    } else {
+      setTimeout(() => {
+        sync(false);
+      }, 800);
+    }
 
     // Sekmeye dönüldüğünde veya telefon ekranı açıldığında otomatik kontrol et
     document.addEventListener('visibilitychange', () => {
