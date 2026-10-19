@@ -22,6 +22,7 @@ let appState = {
   activeTab: "dashboard",
   myPaymentsFilter: "all", // 'all', 'unpaid', 'paid'
   myPaymentsCategoryFilter: "all",
+  myPaymentsMonthFilter: "all", // 'all', 'Ağustos', 'Eylül', vb.
   myPaymentsSearch: "",
   paymentFilter: "all",  // 'all', 'unpaid', 'paid'
   paymentStudentFilter: "all",
@@ -30,7 +31,8 @@ let appState = {
   gcalEmail: "",
   charts: {
     revenue: null,
-    students: null
+    students: null,
+    expenseSummary: null
   }
 };
 
@@ -209,11 +211,23 @@ function ensurePaymentsArray(period) {
   }
 }
 
+// Tarihten Ay Adını Bul (YYYY-MM-DD -> Ağustos, Eylül vb.)
+function getPaymentMonthName(dateStr) {
+  if (!dateStr || typeof dateStr !== "string") return "Bilinmeyen";
+  const parts = dateStr.split("-");
+  if (parts.length >= 2) {
+    const m = parseInt(parts[1], 10);
+    if (MONTH_MAP[m]) return MONTH_MAP[m];
+  }
+  return "Bilinmeyen";
+}
+
 // Kişisel Ödemeler dizisini garanti et (Cem Baba'nın kendi giderleri, faturaları, kartları)
 function ensureMyPaymentsArray(period) {
   if (!period) return;
+  const initPer = (window.INITIAL_DERS_DATA?.periods || []).find(p => p.id === period.id);
+
   if (!period.myPayments || !Array.isArray(period.myPayments)) {
-    const initPer = (window.INITIAL_DERS_DATA?.periods || []).find(p => p.id === period.id);
     if (initPer && Array.isArray(initPer.myPayments) && initPer.myPayments.length > 0) {
       period.myPayments = JSON.parse(JSON.stringify(initPer.myPayments));
     } else {
@@ -227,10 +241,15 @@ function ensureMyPaymentsArray(period) {
         { id: "mypay_7", date: "2026-10-12", title: "Yapı Kredi Kredi Taksiti", amount: 6400, category: "Kredi Taksiti", status: "paid", paidDate: "2026-10-12", note: "10/24 taksit ödendi" }
       ];
     }
+  } else if (period.myPayments.length === 7 && period.myPayments[0].id === "mypay_1") {
+    // Otomatik yükseltme: Eski 7 kalemlik veri yerine güncel çok aylı initial_data verisini yükle
+    if (initPer && Array.isArray(initPer.myPayments) && initPer.myPayments.length > 7) {
+      period.myPayments = JSON.parse(JSON.stringify(initPer.myPayments));
+    }
   }
 }
 
-// Kişisel Ödeme Toplamlarını ve Vade Durumunu Hesapla
+// Kişisel Ödeme Toplamlarını, Ay Ay Giderleri ve Vade Durumunu Hesapla
 function calculateMyPaymentsTotals(period) {
   ensureMyPaymentsArray(period);
   const list = period.myPayments || [];
@@ -242,10 +261,33 @@ function calculateMyPaymentsTotals(period) {
   let unpaidCount = 0;
   let upcoming = null;
 
+  // Ay Ay Dağılım Objesi (Eğitim yılı sırası: Ağustos - Haziran)
+  const monthExpenses = {};
+  MONTHS.forEach(m => {
+    monthExpenses[m] = {
+      month: m,
+      total: 0,
+      paid: 0,
+      unpaid: 0,
+      count: 0,
+      paidCount: 0,
+      unpaidCount: 0,
+      items: []
+    };
+  });
+
+  // Kategori Bazında Dağılım
+  const categoryExpenses = {};
+
   list.forEach(p => {
     const amt = parseFloat(p.amount) || 0;
+    const isPaid = p.status === "paid";
+    const mName = getPaymentMonthName(p.date);
+    const catName = p.category || "Diğer";
+
+    // Genel Toplamlar
     totalAmount += amt;
-    if (p.status === "paid") {
+    if (isPaid) {
       paidAmount += amt;
       paidCount++;
     } else {
@@ -257,6 +299,48 @@ function calculateMyPaymentsTotals(period) {
         }
       }
     }
+
+    // Ay Ay Toplamlar
+    if (!monthExpenses[mName]) {
+      monthExpenses[mName] = {
+        month: mName,
+        total: 0,
+        paid: 0,
+        unpaid: 0,
+        count: 0,
+        paidCount: 0,
+        unpaidCount: 0,
+        items: []
+      };
+    }
+    monthExpenses[mName].total += amt;
+    if (isPaid) {
+      monthExpenses[mName].paid += amt;
+      monthExpenses[mName].paidCount++;
+    } else {
+      monthExpenses[mName].unpaid += amt;
+      monthExpenses[mName].unpaidCount++;
+    }
+    monthExpenses[mName].count++;
+    monthExpenses[mName].items.push(p);
+
+    // Kategori Toplamları
+    if (!categoryExpenses[catName]) {
+      categoryExpenses[catName] = {
+        category: catName,
+        total: 0,
+        paid: 0,
+        unpaid: 0,
+        count: 0
+      };
+    }
+    categoryExpenses[catName].total += amt;
+    if (isPaid) {
+      categoryExpenses[catName].paid += amt;
+    } else {
+      categoryExpenses[catName].unpaid += amt;
+    }
+    categoryExpenses[catName].count++;
   });
 
   return {
@@ -266,7 +350,9 @@ function calculateMyPaymentsTotals(period) {
     paidCount,
     unpaidAmount,
     unpaidCount,
-    upcoming
+    upcoming,
+    monthExpenses,
+    categoryExpenses
   };
 }
 
@@ -1070,7 +1156,57 @@ function renderMyPayments(period) {
     quickDate.value = new Date().toISOString().split("T")[0];
   }
 
-  // 3. Tablo Filtreleme & Döküm
+  // 3. Ay Ay Yatay Çip Şeridi
+  const monthStrip = document.getElementById("myPaymentMonthStrip");
+  if (monthStrip) {
+    const curMonth = appState.myPaymentsMonthFilter || "all";
+    let stripHtml = `
+      <div class="month-chip ${curMonth === 'all' ? 'active' : ''}" onclick="handleMyPaymentMonthFilter('all')" title="Tüm aylardaki giderleri listele">
+        <span>📅 Tüm Aylar</span>
+        <span class="chip-amt">${formatCurrency(totals.totalAmount)}</span>
+      </div>
+    `;
+
+    MONTHS.forEach(m => {
+      const mExp = totals.monthExpenses[m] || { total: 0, count: 0, paid: 0, unpaid: 0 };
+      const isActive = curMonth === m;
+      if (mExp.count > 0) {
+        const statusIcon = mExp.unpaid > 0 ? "⏳" : "✓";
+        const amtStyle = mExp.unpaid > 0 ? "background: #fee2e2; color: #b91c1c;" : "background: #dcfce7; color: #15803d;";
+        stripHtml += `
+          <div class="month-chip ${isActive ? 'active' : ''}" onclick="handleMyPaymentMonthFilter('${m}')" title="${m}: ${mExp.count} kayıt, ${formatCurrency(mExp.total)} (${mExp.unpaid > 0 ? formatCurrency(mExp.unpaid) + ' bekliyor' : 'tamamı ödendi'})">
+            <span>📅 ${m}</span>
+            <span class="chip-amt" style="${amtStyle}">${formatCurrency(mExp.total)}</span>
+            <span style="font-size: 0.75rem; margin-left: 2px;">${statusIcon}</span>
+          </div>
+        `;
+      } else {
+        stripHtml += `
+          <div class="month-chip ${isActive ? 'active' : ''}" onclick="handleMyPaymentMonthFilter('${m}')" style="opacity: 0.6;" title="${m}: Kayıt yok">
+            <span>📅 ${m}</span>
+            <span class="chip-amt">0 ₺</span>
+          </div>
+        `;
+      }
+    });
+
+    monthStrip.innerHTML = stripHtml;
+  }
+
+  // 4. Ay Filtresi Dropdown Seçeneklerini Güncelle
+  const monthSelect = document.getElementById("filterMyPaymentMonthSelect");
+  if (monthSelect) {
+    const curMonth = appState.myPaymentsMonthFilter || "all";
+    let selectHtml = `<option value="all" ${curMonth === 'all' ? 'selected' : ''}>📅 Tüm Aylar (${formatCurrency(totals.totalAmount)})</option>`;
+    MONTHS.forEach(m => {
+      const mExp = totals.monthExpenses[m] || { total: 0, count: 0 };
+      const label = mExp.count > 0 ? `📅 ${m} (${formatCurrency(mExp.total)})` : `📅 ${m} (0 ₺)`;
+      selectHtml += `<option value="${m}" ${curMonth === m ? 'selected' : ''}>${label}</option>`;
+    });
+    monthSelect.innerHTML = selectHtml;
+  }
+
+  // 5. Tablo Filtreleme & Döküm
   const tbody = document.getElementById("myPaymentsListTableBody");
   if (!tbody) return;
 
@@ -1081,6 +1217,12 @@ function renderMyPayments(period) {
     list = list.filter(p => p.status !== "paid");
   } else if (curFilter === "paid") {
     list = list.filter(p => p.status === "paid");
+  }
+
+  // Ay filtresi
+  const curMonth = appState.myPaymentsMonthFilter || "all";
+  if (curMonth && curMonth !== "all") {
+    list = list.filter(p => getPaymentMonthName(p.date) === curMonth);
   }
 
   // Kategori filtresi
@@ -1098,7 +1240,8 @@ function renderMyPayments(period) {
       const cat = (p.category || "").toLowerCase();
       const date = (p.date || "").toLowerCase();
       const amt = (p.amount || "").toString();
-      return title.includes(searchQ) || note.includes(searchQ) || cat.includes(searchQ) || date.includes(searchQ) || amt.includes(searchQ);
+      const monthName = getPaymentMonthName(p.date).toLowerCase();
+      return title.includes(searchQ) || note.includes(searchQ) || cat.includes(searchQ) || date.includes(searchQ) || amt.includes(searchQ) || monthName.includes(searchQ);
     });
   }
 
@@ -1121,10 +1264,15 @@ function renderMyPayments(period) {
         <td colspan="8" style="text-align: center; color: var(--slate-400); padding: 2.5rem 1rem;">
           <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">💳</div>
           <div style="font-weight: 700; color: var(--slate-700); margin-bottom: 0.25rem;">Kayıtlı kişisel ödeme bulunamadı.</div>
-          <div style="font-size: 0.85rem; color: var(--slate-500);">Yukarıdaki hızlı giriş formundan veya "+ Yeni Ödeme" butonundan ödemelerinizi ekleyebilirsiniz.</div>
+          <div style="font-size: 0.85rem; color: var(--slate-500);">Filtre kriterlerinizi değiştirebilir veya yukarıdaki formdan yeni ödeme ekleyebilirsiniz.</div>
         </td>
       </tr>
     `;
+    // Modal açıksa yine de güncelle
+    const modalExp = document.getElementById("modalExpenseSummary");
+    if (modalExp && modalExp.classList.contains("active")) {
+      renderExpenseSummaryModal(period);
+    }
     return;
   }
 
@@ -1185,6 +1333,12 @@ function renderMyPayments(period) {
       </tr>
     `;
   }).join("");
+
+  // 6. Eğer Gider Toplam Bilgi Penceresi açıksa otomatik güncelle
+  const modalExp = document.getElementById("modalExpenseSummary");
+  if (modalExp && modalExp.classList.contains("active")) {
+    renderExpenseSummaryModal(period);
+  }
 }
 
 function handleQuickMyPaymentSubmit(event) {
@@ -1420,6 +1574,383 @@ function exportMyPaymentsToCSV() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+// ==========================================================================
+// GİDER TOPLAM BİLGİ PENCERESİ & AYLIK RAPOR MODALI
+// ==========================================================================
+
+function openExpenseSummaryModal() {
+  const period = getActivePeriod();
+  if (!period) return;
+  renderExpenseSummaryModal(period);
+  openModal("modalExpenseSummary");
+}
+
+function renderExpenseSummaryModal(period) {
+  if (!period) period = getActivePeriod();
+  if (!period) return;
+
+  const totals = calculateMyPaymentsTotals(period);
+  const tutoringTotals = calculateTotals(period);
+  const totalRevenue = tutoringTotals.totalRevenue || 0;
+  const netDiff = totalRevenue - totals.totalAmount;
+
+  // 1. Üst KPI Kartları
+  const elTotalAmt = document.getElementById("modalExpTotalAmount");
+  if (elTotalAmt) elTotalAmt.textContent = formatCurrency(totals.totalAmount);
+
+  const elTotalCnt = document.getElementById("modalExpTotalCount");
+  if (elTotalCnt) elTotalCnt.textContent = `${totals.totalCount} adet kişisel gider kaydı`;
+
+  const elPaidAmt = document.getElementById("modalExpPaidAmount");
+  if (elPaidAmt) elPaidAmt.textContent = formatCurrency(totals.paidAmount);
+
+  const elPaidPct = document.getElementById("modalExpPaidPercent");
+  if (elPaidPct) {
+    const pct = totals.totalAmount > 0 ? Math.round((totals.paidAmount / totals.totalAmount) * 100) : 0;
+    elPaidPct.textContent = `%${pct} tamamlandı (${totals.paidCount} adet)`;
+  }
+
+  const elUnpaidAmt = document.getElementById("modalExpUnpaidAmount");
+  if (elUnpaidAmt) elUnpaidAmt.textContent = formatCurrency(totals.unpaidAmount);
+
+  const elUnpaidCnt = document.getElementById("modalExpUnpaidCount");
+  if (elUnpaidCnt) elUnpaidCnt.textContent = `${totals.unpaidCount} adet ödeme bekliyor`;
+
+  const elNetCard = document.getElementById("modalExpNetCard");
+  const elNetAmt = document.getElementById("modalExpNetAmount");
+  const elNetSub = document.getElementById("modalExpNetSubtext");
+
+  if (elNetAmt) {
+    elNetAmt.textContent = formatCurrency(netDiff);
+    if (netDiff >= 0) {
+      elNetAmt.style.color = "#059669";
+      if (elNetCard) {
+        elNetCard.style.borderLeftColor = "#059669";
+        elNetCard.style.background = "#f0fdf4";
+      }
+      if (elNetSub) elNetSub.textContent = "Ders geliri giderlerden fazla (+) 🎉";
+    } else {
+      elNetAmt.style.color = "#dc2626";
+      if (elNetCard) {
+        elNetCard.style.borderLeftColor = "#dc2626";
+        elNetCard.style.background = "#fff1f2";
+      }
+      if (elNetSub) elNetSub.textContent = "Giderler ders gelirinden fazla (-)";
+    }
+  }
+
+  // 2. Ay Ay Detaylı Gider Tablosu
+  const tbody = document.getElementById("modalMonthlyExpenseTableBody");
+  const tfoot = document.getElementById("modalMonthlyExpenseTableFoot");
+
+  if (tbody) {
+    let rowsHtml = "";
+    MONTHS.forEach(m => {
+      const exp = totals.monthExpenses[m] || { total: 0, paid: 0, unpaid: 0, count: 0 };
+      const rev = tutoringTotals.monthTotals[m] ? tutoringTotals.monthTotals[m].revenue : 0;
+      const monthNet = rev - exp.total;
+
+      let statusBadge = "";
+      if (exp.count === 0) {
+        statusBadge = `<span style="color: var(--slate-400); font-size: 0.8rem;">— Kayıt Yok</span>`;
+      } else if (exp.unpaid === 0) {
+        statusBadge = `<span class="badge" style="background:#dcfce7; color:#15803d; font-size:0.75rem; font-weight:700;">🟢 %100 Ödendi</span>`;
+      } else {
+        const pct = Math.round((exp.paid / (exp.total || 1)) * 100);
+        statusBadge = `
+          <div style="display: flex; flex-direction: column; gap: 3px; align-items: center;">
+            <div class="expense-progress-track" title="%${pct} ödendi">
+              <div class="expense-progress-fill" style="width: ${pct}%;"></div>
+            </div>
+            <span style="font-size: 0.72rem; color: var(--slate-600); font-weight: 600;">%${pct} ödendi</span>
+          </div>
+        `;
+      }
+
+      const netBadge = monthNet >= 0
+        ? `<span class="badge-net-pos">+${formatCurrency(monthNet)}</span>`
+        : `<span class="badge-net-neg">${formatCurrency(monthNet)}</span>`;
+
+      rowsHtml += `
+        <tr style="${exp.count > 0 ? '' : 'opacity: 0.6;'}">
+          <td style="font-weight: 700; color: var(--slate-800); white-space: nowrap;">
+            📅 ${m}
+          </td>
+          <td style="text-align: right; font-weight: 700; color: var(--slate-900);" class="tabular-nums">
+            ${formatCurrency(exp.total)}
+          </td>
+          <td style="text-align: right; font-weight: 600; color: #16a34a;" class="tabular-nums">
+            ${formatCurrency(exp.paid)}
+          </td>
+          <td style="text-align: right; font-weight: 600; color: ${exp.unpaid > 0 ? '#dc2626' : 'var(--slate-400)'};" class="tabular-nums">
+            ${exp.unpaid > 0 ? formatCurrency(exp.unpaid) : '0 ₺'}
+          </td>
+          <td style="text-align: right; font-weight: 600; color: var(--primary);" class="tabular-nums">
+            ${formatCurrency(rev)}
+          </td>
+          <td style="text-align: right;" class="tabular-nums">
+            ${netBadge}
+          </td>
+          <td style="text-align: center;">
+            ${statusBadge}
+          </td>
+          <td style="text-align: center; color: var(--slate-600); font-size: 0.85rem;">
+            ${exp.count > 0 ? `${exp.count} adet` : '-'}
+          </td>
+          <td style="text-align: center;">
+            <button type="button" class="btn btn-secondary" onclick="filterToMonth('${m}')" style="padding: 3px 8px; font-size: 0.75rem; white-space: nowrap;" title="${m} ayı giderlerini filtrele">
+              🔍 Gör
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = rowsHtml;
+  }
+
+  if (tfoot) {
+    const overallPct = totals.totalAmount > 0 ? Math.round((totals.paidAmount / totals.totalAmount) * 100) : 0;
+    const totalNetBadge = netDiff >= 0
+      ? `<span class="badge-net-pos">+${formatCurrency(netDiff)}</span>`
+      : `<span class="badge-net-neg">${formatCurrency(netDiff)}</span>`;
+
+    tfoot.innerHTML = `
+      <tr>
+        <td>TOPLAM</td>
+        <td style="text-align: right; color: var(--slate-900); font-size: 1rem;">${formatCurrency(totals.totalAmount)}</td>
+        <td style="text-align: right; color: #16a34a;">${formatCurrency(totals.paidAmount)}</td>
+        <td style="text-align: right; color: #dc2626;">${formatCurrency(totals.unpaidAmount)}</td>
+        <td style="text-align: right; color: var(--primary); font-size: 1rem;">${formatCurrency(totalRevenue)}</td>
+        <td style="text-align: right;">${totalNetBadge}</td>
+        <td style="text-align: center; font-size: 0.8rem; color: var(--slate-700);">%${overallPct} ödendi</td>
+        <td style="text-align: center;">${totals.totalCount} adet</td>
+        <td style="text-align: center;">
+          <button type="button" class="btn btn-secondary" onclick="filterToMonth('all')" style="padding: 3px 8px; font-size: 0.75rem; white-space: nowrap;">
+            Tümü
+          </button>
+        </td>
+      </tr>
+    `;
+  }
+
+  // 3. Kategori Bazında Gider Dağılım Kartları
+  const catGrid = document.getElementById("modalCategoryExpenseGrid");
+  if (catGrid) {
+    const CAT_ICONS = {
+      "Kredi Kartı": "💳",
+      "Fatura": "💡",
+      "Kira & Aidat": "🏠",
+      "Kredi Taksiti": "🏦",
+      "Sigorta & Vergi": "🛡️",
+      "Alışveriş & Market": "🛒",
+      "Diğer": "📝"
+    };
+
+    const categories = Object.keys(totals.categoryExpenses);
+    if (categories.length === 0) {
+      catGrid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--slate-400); padding: 1rem;">Henüz kategori verisi bulunmuyor.</div>`;
+    } else {
+      categories.sort((a, b) => totals.categoryExpenses[b].total - totals.categoryExpenses[a].total);
+
+      catGrid.innerHTML = categories.map(cat => {
+        const cData = totals.categoryExpenses[cat];
+        const pct = totals.totalAmount > 0 ? Math.round((cData.total / totals.totalAmount) * 100) : 0;
+        const icon = CAT_ICONS[cat] || "🏷️";
+        return `
+          <div class="category-stat-card" onclick="filterToCategory('${cat}')" style="cursor: pointer;" title="${cat} kategorisindeki ödemeleri listelemek için tıklayın">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <div style="font-weight: 700; color: var(--slate-800); font-size: 0.9rem; display: flex; align-items: center; gap: 5px;">
+                  <span>${icon}</span> ${escapeHtml(cat)}
+                </div>
+                <span class="badge" style="background: var(--slate-100); color: var(--slate-600); font-size: 0.7rem; font-weight: 700;">%${pct}</span>
+              </div>
+              <div style="font-size: 1.25rem; font-weight: 800; color: var(--slate-900); margin-bottom: 0.5rem;" class="tabular-nums">
+                ${formatCurrency(cData.total)}
+              </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; border-top: 1px dashed var(--slate-200); padding-top: 0.4rem; margin-top: 0.25rem;">
+              <span style="color: #16a34a; font-weight: 600;">✓ ${formatCurrency(cData.paid)}</span>
+              <span style="color: ${cData.unpaid > 0 ? '#dc2626' : 'var(--slate-400)'}; font-weight: 600;">⏳ ${formatCurrency(cData.unpaid)}</span>
+              <span style="color: var(--slate-400);">${cData.count} adet</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+  }
+
+  // 4. Chart.js Grafik (Ay Ay Giderler & Özel Ders Geliri)
+  renderExpenseSummaryChart(totals, tutoringTotals);
+}
+
+// Chart.js Aylık Gider vs Gelir Grafiği
+function renderExpenseSummaryChart(totals, tutoringTotals) {
+  const canvas = document.getElementById("chartMonthlyExpensesModal");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  if (appState.charts.expenseSummary) {
+    appState.charts.expenseSummary.destroy();
+    appState.charts.expenseSummary = null;
+  }
+
+  const paidData = MONTHS.map(m => totals.monthExpenses[m] ? totals.monthExpenses[m].paid : 0);
+  const unpaidData = MONTHS.map(m => totals.monthExpenses[m] ? totals.monthExpenses[m].unpaid : 0);
+  const revenueData = MONTHS.map(m => tutoringTotals.monthTotals[m] ? tutoringTotals.monthTotals[m].revenue : 0);
+
+  const ctx = canvas.getContext("2d");
+  appState.charts.expenseSummary = new Chart(ctx, {
+    data: {
+      labels: MONTHS,
+      datasets: [
+        {
+          type: "bar",
+          label: "Ödenen Gider (₺)",
+          data: paidData,
+          backgroundColor: "rgba(16, 185, 129, 0.85)",
+          hoverBackgroundColor: "rgba(16, 185, 129, 1)",
+          stack: "expenseStack",
+          borderRadius: 4
+        },
+        {
+          type: "bar",
+          label: "Bekleyen Gider (₺)",
+          data: unpaidData,
+          backgroundColor: "rgba(239, 68, 68, 0.85)",
+          hoverBackgroundColor: "rgba(239, 68, 68, 1)",
+          stack: "expenseStack",
+          borderRadius: 4
+        },
+        {
+          type: "line",
+          label: "Özel Ders Geliri (₺)",
+          data: revenueData,
+          borderColor: "#4f46e5",
+          backgroundColor: "rgba(79, 70, 229, 0.15)",
+          pointBackgroundColor: "#4f46e5",
+          pointBorderColor: "#ffffff",
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderWidth: 2.5,
+          tension: 0.3,
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: "index",
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          position: "top",
+          labels: {
+            boxWidth: 12,
+            font: { family: "'Inter', sans-serif", size: 12, weight: 600 }
+          }
+        },
+        tooltip: {
+          padding: 10,
+          boxPadding: 4,
+          usePointStyle: true,
+          callbacks: {
+            label: function(context) {
+              return ` ${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: true,
+          grid: { display: false }
+        },
+        y: {
+          stacked: false,
+          beginAtZero: true,
+          ticks: {
+            callback: function(val) {
+              return val >= 1000 ? (val / 1000) + "k ₺" : val + " ₺";
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function handleMyPaymentMonthFilter(monthName) {
+  appState.myPaymentsMonthFilter = monthName;
+  renderMyPayments(getActivePeriod());
+}
+
+function filterToMonth(monthName) {
+  closeModal("modalExpenseSummary");
+  appState.myPaymentsMonthFilter = monthName;
+  switchTab("payments");
+  renderMyPayments(getActivePeriod());
+  if (monthName === "all") {
+    showToast("📅 Tüm aylardaki ödemeler listelendi.");
+  } else {
+    showToast(`📅 ${monthName} ayı giderleri filtrelendi.`);
+  }
+}
+
+function filterToCategory(categoryName) {
+  closeModal("modalExpenseSummary");
+  appState.myPaymentsCategoryFilter = categoryName;
+  appState.myPaymentsMonthFilter = "all";
+  switchTab("payments");
+  renderMyPayments(getActivePeriod());
+  showToast(`🏷️ "${categoryName}" kategorisi filtrelendi.`);
+}
+
+function exportMonthlyExpensesToCSV() {
+  const period = getActivePeriod();
+  if (!period) return;
+  const totals = calculateMyPaymentsTotals(period);
+  const tutoringTotals = calculateTotals(period);
+
+  let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+  csvContent += "Ay,Toplam Gider (TL),Ödenen Gider (TL),Bekleyen Gider (TL),Ders Geliri (TL),Net Bakiye (TL),Kayıt Adedi,Ödeme Durumu\n";
+
+  MONTHS.forEach(m => {
+    const exp = totals.monthExpenses[m] || { total: 0, paid: 0, unpaid: 0, count: 0 };
+    const rev = tutoringTotals.monthTotals[m] ? tutoringTotals.monthTotals[m].revenue : 0;
+    const net = rev - exp.total;
+    const statusText = exp.count === 0 ? "Kayıt Yok" : (exp.unpaid === 0 ? "%100 Ödendi" : `%${Math.round((exp.paid / (exp.total || 1)) * 100)} Ödendi`);
+
+    const row = [
+      `"${m}"`,
+      `"${exp.total}"`,
+      `"${exp.paid}"`,
+      `"${exp.unpaid}"`,
+      `"${rev}"`,
+      `"${net}"`,
+      `"${exp.count}"`,
+      `"${statusText}"`
+    ];
+    csvContent += row.join(",") + "\n";
+  });
+
+  const totalRev = tutoringTotals.totalRevenue || 0;
+  const totalNet = totalRev - totals.totalAmount;
+  csvContent += `"GENEL TOPLAM","${totals.totalAmount}","${totals.paidAmount}","${totals.unpaidAmount}","${totalRev}","${totalNet}","${totals.totalCount}","%${totals.totalAmount > 0 ? Math.round((totals.paidAmount / totals.totalAmount) * 100) : 0} Ödendi"\n`;
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `Cem_Baba_Aylik_Gider_ve_Gelir_Raporu_${period.id}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast("📊 Aylık Gider ve Bakiye Raporu CSV olarak indirildi.");
 }
 
 // --------------------------------------------------------------------------
@@ -2393,6 +2924,21 @@ function setupEventListeners() {
       updateLessonRateFromSelectedStudent(e.target.value);
     });
   }
+
+  // Modal arkaplanına tıklayınca ve Escape tuşuna basınca kapatma
+  document.querySelectorAll(".modal-overlay").forEach(overlay => {
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) {
+        overlay.classList.remove("active");
+      }
+    });
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      document.querySelectorAll(".modal-overlay.active").forEach(m => m.classList.remove("active"));
+    }
+  });
 }
 
 function updateLessonRateFromSelectedStudent(studentId) {

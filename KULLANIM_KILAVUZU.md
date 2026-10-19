@@ -70,9 +70,17 @@ Programa Google Takvim için **3 farklı ve çok pratik entegrasyon** eklenmişt
       - **📌 Durum** (🔴 Bekliyor veya 🟢 Ödendi)
       - **💬 Not / Açıklama** (Örn: "Son ödeme 25'i", "Otomatik talimat verildi", vb.)
     - **`💾 Ödemeyi Kaydet`** butonuna basarak anında listeye kaydedebilirsiniz.
+  - 📊 **Ay Ay Giderler ve Gider Toplam Bilgi Penceresi:**
+    - **Yatay Ay Çipleri:** Sayfadaki ay şeridi üzerinden tüm aylardaki gider toplamlarını, ödenen ve bekleyen tutarları anında görebilir ve tek tıkla aya göre filtreleyebilirsiniz.
+    - **Gider Toplam Bilgi Penceresi:** **`📊 Gider Toplam Bilgi Penceresi`** butonuna tıkladığınızda:
+      - Yıllık Toplam Gider, Ödenen Tutar, Kalan Bekleyen Borç ve Net Durum (Ders Geliri - Kişisel Gider) KPI kartları.
+      - **Ay Ay Giderler & Özel Ders Gelirleri Grafiği:** Aylık ödenen/bekleyen giderler ve özel ders cirosu karşılaştırmalı grafik.
+      - **Ay Ay Detaylı Gider ve Bakiye Tablosu:** Her ayın toplam harcaması, ödenen tutarı, bekleyen borcu, ders geliri ve net kalan bakiyesi (+/-).
+      - **Kategori Dağılım Kartları:** Kredi kartı, kira, fatura, kredi taksiti ve SGK harcamalarının yıllık payı.
+      - **Excel Raporu İndirme:** Tüm aylık finansal karşılaştırma tablosunu tek tıkla Excel/CSV olarak indirebilir veya yazdırabilirsiniz.
   - 📋 **Kayıtlı Ödemelerim Listesi:** Tüm kişisel ödemeleriniz tarih, kategori rozeti, tutar ve durum bilgileriyle listelenir.
   - 🔄 **Tek Tıkla Ödendi Yap (Toggle):** Tablodaki `🔴 Bekliyor` butonuna tek tıkla bastığınızda anında `🟢 Ödendi ✓` durumuna geçer ve kasanız güncellenir.
-  - 🔍 **Filtreleme & Arama:** `Tümü`, `🔴 Bekleyenler`, `🟢 Ödenenler` butonları, kategori seçici ve anlık arama kutusuyla istediğiniz ödemeyi saniyeler içinde bulun.
+  - 🔍 **Filtreleme & Arama:** `Tümü`, `🔴 Bekleyenler`, `🟢 Ödenenler` butonları, ay ve kategori seçicileri ile anlık arama kutusuyla istediğiniz ödemeyi saniyeler içinde bulun.
   - 📥 **Excel İndir:** **`Excel İndir`** butonu ile tüm kişisel ödeme geçmişinizi Excel/CSV olarak bilgisayarınıza indirebilirsiniz.
 
 ### 4️⃣ Öğrenci Ders Ücreti & Tahsilat Takibi (💰 Öğrenci Tahsilatı)
