@@ -66,6 +66,15 @@ window.INITIAL_DERS_DATA = {
         { id: "pay_11", studentId: "melis", date: "2026-09-25", amount: 3500, type: "Nakit / Elden", note: "Elden teslim alındı", lessonId: "les_14" },
         { id: "pay_12", studentId: "eylul", date: "2026-09-28", amount: 4000, type: "Banka Havalesi / EFT", note: "Kanada transferi", lessonId: "les_16" }
       ],
+      myPayments: [
+        { id: "mypay_1", date: "2026-10-24", title: "Garanti BBVA Kredi Kartı", amount: 14500, category: "Kredi Kartı", status: "unpaid", paidDate: "", note: "Son ödeme günü 24 Ekim" },
+        { id: "mypay_2", date: "2026-10-15", title: "Ev Kirası", amount: 22000, category: "Kira & Aidat", status: "paid", paidDate: "2026-10-15", note: "Ekim ayı ev kirası ev sahibine ödendi" },
+        { id: "mypay_3", date: "2026-10-28", title: "İgdaş Doğalgaz Faturası", amount: 1250, category: "Fatura", status: "unpaid", paidDate: "", note: "Son gün 28 Ekim" },
+        { id: "mypay_4", date: "2026-10-18", title: "Turkcell Telefon & İnternet", amount: 890, category: "Fatura", status: "paid", paidDate: "2026-10-18", note: "Otomatik ödeme talimatı ödendi" },
+        { id: "mypay_5", date: "2026-10-25", title: "Site Aidatı", amount: 1500, category: "Kira & Aidat", status: "unpaid", paidDate: "", note: "Ekim ayı aidatı" },
+        { id: "mypay_6", date: "2026-10-31", title: "Bağkur / SGK Primi", amount: 7800, category: "Sigorta & Vergi", status: "unpaid", paidDate: "", note: "Son gün ay sonu" },
+        { id: "mypay_7", date: "2026-10-12", title: "Yapı Kredi Kredi Taksiti", amount: 6400, category: "Kredi Taksiti", status: "paid", paidDate: "2026-10-12", note: "10/24 taksit ödendi" }
+      ],
       monthlyLessons: {
         "Ağustos": { yalin: 1, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
         "Eylül":   { yalin: 5, sarp: 1, can12: 0, ural: 3, ege: 0, melis: 1, eylul: 1 },

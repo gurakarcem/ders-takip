@@ -59,27 +59,35 @@ Programa Google Takvim için **3 farklı ve çok pratik entegrasyon** eklenmişt
   - **"Ders Parası Yatırıldı mı?"** seçeneğinden `🟢 Ödendi` veya `🔴 Yatırılmadı (Bekliyor)` seçilir.
   - Ders anında ilgili ayın ders sayısına (+1) ve ödeme tablosuna yansır.
 
-### 3️⃣ Ödemeler Sekmesi & Tahsilat Girişi (💳 Ödemeler)
-- **`💳 Ödemeler`** sekmesinde:
+### 3️⃣ Kendi Ödemeleriniz & Gider Takibi (💳 Ödemeler)
+- **`💳 Ödemeler`** sekmesi **tamamen sizin kendi kişisel ödemelerinize** ayrılmıştır (kredi kartları, ev kirası, elektrik/gaz/su faturaları, kredi taksitleri, bağkur primi vb.):
   - **Tarih ve Ödeme Bilgisi Girişi:**
-    - Üstteki **Hızlı Ödeme Girişi** formu veya üst bardaki **`💳 Ödeme Gir`** butonu ile:
-      - **Ödeme Tarihi** (YYYY-AA-GG veya takvim seçici)
-      - **Öğrenci Seçimi** (öğrencinin kalan borcu otomatik görünür)
-      - **Ödenen Tutar (₺)** (kalan borç veya ders ücreti otomatik önerilir, serbestçe değiştirilebilir)
-      - **Ödeme Şekli** (Banka Havalesi / EFT, FAST, Nakit / Elden, Kredi Kartı, Diğer)
-      - **Ödeme Bilgisi / Dekont / Not** (Örn: "Garanti BBVA dekont no: 4891", "Ekim ayı 4 ders peşin", "Anne havalesi")
-    - **`💾 Ödemeyi Kaydet`** butonuna basarak anında tahsilat geçmişine işleyebilirsiniz.
-  - 📋 **Kayıtlı Ödemeler Listesi:** Yapılan tüm ödemelerin tarih, tutar, ödeme şekli ve dekont/açıklama bilgileri döküm olarak listelenir. Yanındaki **`✏️ Düzenle`** ve **`🗑️ Sil`** butonlarıyla geçmiş ödemeler istenildiği zaman güncellenebilir.
-  - 📊 **Öğrenci Bakiye Durumu:** Yapılan toplam ders, toplam ders ücreti, alınan ödemeler toplamı ve kalan borç net olarak hesaplanır. Tek tıkla **`💳 Ödeme Gir`** ile o öğrenciye özel ödeme eklenebilir.
-  - 📥 **Excel İndir:** **`Ödemeleri Excel İndir`** butonu ile tüm ödeme dökümü tek tıkla Excel/CSV olarak bilgisayara aktarılabilir.
-  - 🔍 **Ders Bazlı Ödeme Kontrolü:** Derslerin tek tek ödenip ödenmediğini incelemek için açılır listeden her dersin ödendi durumu kontrol edilebilir.
+    - Üstteki **Hızlı Ödeme Girişi** formu veya üst bardaki **`💳 Ödeme Ekle`** butonu ile:
+      - **📅 Ödeme Tarihi** (Ödeme veya son ödeme vadesi)
+      - **📝 Ödeme Bilgisi** (Örn: "Garanti BBVA Kredi Kartı", "Ev Kirası", "İgdaş Doğalgaz Faturası", "Turkcell Telefon", "Bağkur Primi")
+      - **💰 Tutar (₺)**
+      - **🏷️ Kategori** (Kredi Kartı, Fatura, Kira & Aidat, Kredi Taksiti, Sigorta & Vergi, Alışveriş, Diğer)
+      - **📌 Durum** (🔴 Bekliyor veya 🟢 Ödendi)
+      - **💬 Not / Açıklama** (Örn: "Son ödeme 25'i", "Otomatik talimat verildi", vb.)
+    - **`💾 Ödemeyi Kaydet`** butonuna basarak anında listeye kaydedebilirsiniz.
+  - 📋 **Kayıtlı Ödemelerim Listesi:** Tüm kişisel ödemeleriniz tarih, kategori rozeti, tutar ve durum bilgileriyle listelenir.
+  - 🔄 **Tek Tıkla Ödendi Yap (Toggle):** Tablodaki `🔴 Bekliyor` butonuna tek tıkla bastığınızda anında `🟢 Ödendi ✓` durumuna geçer ve kasanız güncellenir.
+  - 🔍 **Filtreleme & Arama:** `Tümü`, `🔴 Bekleyenler`, `🟢 Ödenenler` butonları, kategori seçici ve anlık arama kutusuyla istediğiniz ödemeyi saniyeler içinde bulun.
+  - 📥 **Excel İndir:** **`Excel İndir`** butonu ile tüm kişisel ödeme geçmişinizi Excel/CSV olarak bilgisayarınıza indirebilirsiniz.
 
-### 4️⃣ Aylık Kaç Ders Yapıldığının Tablolanması (📈 Aylık Ders Sayıları Tablosu)
+### 4️⃣ Öğrenci Ders Ücreti & Tahsilat Takibi (💰 Öğrenci Tahsilatı)
+- **`💰 Öğrenci Tahsilatı`** sekmesinde öğrencilerin ders parası yatırma geçmişi ve bakiye durumu takip edilir:
+  - **Öğrenci Tahsilat Girişi:** Öğrencinin yatırdığı parayı tarih, tutar, ödeme yöntemi (EFT, FAST, Nakit, Kart) ve dekont açıklamasıyla kaydedin.
+  - 📊 **Öğrenci Bakiye Tablosu:** Her öğrencinin toplam dersi, hak edilen ücret, yatırılan ödeme ve kalan borç/alacak durumu net görünür.
+  - 🔍 **Ders Bazlı Ödeme Kontrolü:** İşlenen derslerin tek tek ödenip ödenmediğini ders bazında kontrol edin.
+  - 📥 **Tahsilatları Excel İndir:** Öğrenci ödeme dökümünü Excel/CSV formatında indirin.
+
+### 5️⃣ Aylık Kaç Ders Yapıldığının Tablolanması (📈 Aylık Ders Sayıları Tablosu)
 - Ağustos'tan Haziran'a kadar her ay hangi öğrenciyle kaç ders yapıldığı (ve ay toplamları) matris halinde sunulur.
 - İster `📚 Ders Sayıları`, ister `💰 Gelirler (₺)` modunda incelenebilir.
 - **`Excel İndir`** butonu ile Excel/CSV olarak bilgisayarınıza aktarılabilir.
 
-### 5️⃣ Geçmiş Derslerin Fiyat ve Tarih Bilgilerini Değiştirme (✏️ Ders Düzenleme & Silme)
+### 6️⃣ Geçmiş Derslerin Fiyat ve Tarih Bilgilerini Değiştirme (✏️ Ders Düzenleme & Silme)
 Geçmişte işlenmiş herhangi bir dersin fiyatını, tarihini, saatini veya ödeme durumunu dilediğiniz gibi güncelleyebilirsiniz:
 - **Nereden Düzenlenir?**
   1. **Ödeme & Tahsilat Takibi** tablosunda ilgili ders satırındaki **`✏️ Düzenle`** butonuna tıklayarak.
@@ -92,7 +100,7 @@ Geçmişte işlenmiş herhangi bir dersin fiyatını, tarihini, saatini veya öd
   - **Ödeme Durumu:** `🟢 Ödendi` veya `🔴 Yatırılmadı` olarak ayarlanabilir.
   - **Dersi Silme:** Açılan pencerenin sol altındaki **`🗑️ Dersi Sil`** butonu ile yanlış girilmiş dersleri tek tıkla silebilirsiniz.
 
-### 6️⃣ Cihazlar Arası Canlı Bulut Senkronizasyonu (Telefon & Bilgisayar Eşitleme ☁️)
+### 7️⃣ Cihazlar Arası Canlı Bulut Senkronizasyonu (Telefon & Bilgisayar Eşitleme ☁️)
 Program artık **hangi cihazdan girerseniz girin en son verilerinizi otomatik eşitleyecek** canlı bulut motoruna sahiptir:
 - **Nasıl Çalışır?**
   - Bilgisayardan ders veya ödeme girdiğinizde anında buluta yazılır.
@@ -104,7 +112,7 @@ Program artık **hangi cihazdan girerseniz girin en son verilerinizi otomatik e�
   3. **Telefonu Eşleştirme:** "Telefona QR Kodu Göster" butonuna basarak ekrandaki QR kodu telefonunuzun kamerasıyla okutun veya "Telefon Linkini Kopyala" ile kendinize WhatsApp'tan gönderin.
   4. Telefonunuz anında aynı bulut veritabanına bağlanacak ve sıfır ayarla her iki cihazınız da ortak veriyi kullanacaktır!
 
-### 7️⃣ Manuel Dosya Yedeği Alma & Google Drive (💾)
+### 8️⃣ Manuel Dosya Yedeği Alma & Google Drive (💾)
 Çalışmanızı dosya olarak da güvenle saklamak için:
 - **1 Tıkla Yedekleme & Drive Açma:**
   - Klasördeki **[`GoogleDrive_Yedekle.bat`](file:///c:/Users/gurak/Desktop/%C3%A7al%C4%B1%C5%9Fma/GoogleDrive_Yedekle.bat)** dosyasına çift tıklayın.
@@ -115,7 +123,7 @@ Program artık **hangi cihazdan girerseniz girin en son verilerinizi otomatik e�
 
 ---
 
-### 7️⃣ Telefon Uygulaması Olarak Kullanma (📱 iPhone & Android PWA)
+### 9️⃣ Telefon Uygulaması Olarak Kullanma (📱 iPhone & Android PWA)
 Uygulama tam bir **Progressive Web App (PWA)** olarak yapılandırılmıştır. Herhangi bir App Store / Play Store ücreti veya kurulumu olmadan doğrudan telefonunuza tam ekran bir mobil uygulama olarak kurulabilir:
 
 #### A) Yerel Wi-Fi İle Telefona Yükleme (Hemen Şimdi):

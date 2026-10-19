@@ -23,7 +23,8 @@
 | 📋 Öğrenci Kaydı | Yeni öğrenci kabulü, sınıf bilgisi, iletişim |
 | 💰 Ders Ücreti | Her öğrenci için ayrı ders başı ücret belirleme |
 | 📅 Ders Kaydı | Tarih, saat, süre ve ödeme durumu ile ders girişi |
-| 💳 Ödemeler Sekmesi | Tarih ve ödeme bilgisi girişi, dekont takibi, tahsilat geçmişi ve Excel aktarımı |
+| 💳 Ödemeler Sekmesi | Kişisel gider ve ödeme takibi (kredi kartları, ev kirası, faturalar, kredi taksitleri), tarih ve ödeme bilgisi girişi, tek tıkla ödendi/bekliyor kontrolü ve Excel aktarımı |
+| 💰 Öğrenci Tahsilatı | Öğrenci ders ücretleri, bakiye, tahsilat dökümü ve ders bazlı ödeme kontrolü |
 | 📊 Aylık Matris | Excel benzeri aylık ders sayısı ve gelir tablosu |
 | 🗓️ Google Takvim | Dersleri tek tıkla Google Takvim'e aktarma (.ics) |
 | 📱 PWA | Telefona uygulama olarak kurulabilir |

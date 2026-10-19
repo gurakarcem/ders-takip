@@ -20,6 +20,9 @@ let appState = {
   activePeriodId: "2026-2027",
   matrixMode: "lessons", // 'lessons' veya 'revenue'
   activeTab: "dashboard",
+  myPaymentsFilter: "all", // 'all', 'unpaid', 'paid'
+  myPaymentsCategoryFilter: "all",
+  myPaymentsSearch: "",
   paymentFilter: "all",  // 'all', 'unpaid', 'paid'
   paymentStudentFilter: "all",
   paymentHistoryFilter: "all",
@@ -50,6 +53,7 @@ function initApp() {
           appState.data.periods.forEach(p => {
             ensureLessonsArray(p);
             ensurePaymentsArray(p);
+            ensureMyPaymentsArray(p);
           });
         }
         populatePeriodSelect();
@@ -93,11 +97,12 @@ function loadData() {
     appState.activePeriodId = appState.data.activePeriodId;
   }
 
-  // Her dönem için dersler ve ödemeler dizilerinin varlığını garanti et
+  // Her dönem için dersler, ödemeler ve kişisel ödemeler dizilerinin varlığını garanti et
   if (appState.data && appState.data.periods) {
     appState.data.periods.forEach(p => {
       ensureLessonsArray(p);
       ensurePaymentsArray(p);
+      ensureMyPaymentsArray(p);
     });
   }
 }
@@ -125,6 +130,7 @@ function resetToDefaultData() {
       appState.data.periods.forEach(p => {
         ensureLessonsArray(p);
         ensurePaymentsArray(p);
+        ensureMyPaymentsArray(p);
       });
     }
     saveData();
@@ -201,6 +207,67 @@ function ensurePaymentsArray(period) {
       });
     }
   }
+}
+
+// Kişisel Ödemeler dizisini garanti et (Cem Baba'nın kendi giderleri, faturaları, kartları)
+function ensureMyPaymentsArray(period) {
+  if (!period) return;
+  if (!period.myPayments || !Array.isArray(period.myPayments)) {
+    const initPer = (window.INITIAL_DERS_DATA?.periods || []).find(p => p.id === period.id);
+    if (initPer && Array.isArray(initPer.myPayments) && initPer.myPayments.length > 0) {
+      period.myPayments = JSON.parse(JSON.stringify(initPer.myPayments));
+    } else {
+      period.myPayments = [
+        { id: "mypay_1", date: "2026-10-24", title: "Garanti BBVA Kredi Kartı", amount: 14500, category: "Kredi Kartı", status: "unpaid", paidDate: "", note: "Son ödeme günü 24 Ekim" },
+        { id: "mypay_2", date: "2026-10-15", title: "Ev Kirası", amount: 22000, category: "Kira & Aidat", status: "paid", paidDate: "2026-10-15", note: "Ekim ayı ev kirası ev sahibine ödendi" },
+        { id: "mypay_3", date: "2026-10-28", title: "İgdaş Doğalgaz Faturası", amount: 1250, category: "Fatura", status: "unpaid", paidDate: "", note: "Son gün 28 Ekim" },
+        { id: "mypay_4", date: "2026-10-18", title: "Turkcell Telefon & İnternet", amount: 890, category: "Fatura", status: "paid", paidDate: "2026-10-18", note: "Otomatik ödeme talimatı ödendi" },
+        { id: "mypay_5", date: "2026-10-25", title: "Site Aidatı", amount: 1500, category: "Kira & Aidat", status: "unpaid", paidDate: "", note: "Ekim ayı aidatı" },
+        { id: "mypay_6", date: "2026-10-31", title: "Bağkur / SGK Primi", amount: 7800, category: "Sigorta & Vergi", status: "unpaid", paidDate: "", note: "Son gün ay sonu" },
+        { id: "mypay_7", date: "2026-10-12", title: "Yapı Kredi Kredi Taksiti", amount: 6400, category: "Kredi Taksiti", status: "paid", paidDate: "2026-10-12", note: "10/24 taksit ödendi" }
+      ];
+    }
+  }
+}
+
+// Kişisel Ödeme Toplamlarını ve Vade Durumunu Hesapla
+function calculateMyPaymentsTotals(period) {
+  ensureMyPaymentsArray(period);
+  const list = period.myPayments || [];
+
+  let totalAmount = 0;
+  let paidAmount = 0;
+  let unpaidAmount = 0;
+  let paidCount = 0;
+  let unpaidCount = 0;
+  let upcoming = null;
+
+  list.forEach(p => {
+    const amt = parseFloat(p.amount) || 0;
+    totalAmount += amt;
+    if (p.status === "paid") {
+      paidAmount += amt;
+      paidCount++;
+    } else {
+      unpaidAmount += amt;
+      unpaidCount++;
+      if (p.date) {
+        if (!upcoming || p.date < upcoming.date) {
+          upcoming = p;
+        }
+      }
+    }
+  });
+
+  return {
+    totalAmount,
+    totalCount: list.length,
+    paidAmount,
+    paidCount,
+    unpaidAmount,
+    unpaidCount,
+    upcoming
+  };
 }
 
 // Hesaplamalar (Toplamlar, Tahsilat, Bakiye)
@@ -293,6 +360,7 @@ function renderApp() {
   renderKPIs(totals, period);
   renderDashboard(totals, period);
   renderMatrix(totals, period);
+  renderMyPayments(period);
   renderPayments(totals, period);
   renderSchedule(period);
   renderStudents(totals, period);
@@ -941,8 +1009,421 @@ function handleDeleteCurrentLesson() {
   showToast("Ders kaydı başarıyla silindi!");
 }
 
+// ==========================================================================
+// KİŞİSEL ÖDEMELERİM YÖNETİMİ (CEM BABA ÖZEL GİDER, KART, KİRA, FATURA TAKİBİ)
+// ==========================================================================
+function renderMyPayments(period) {
+  if (!period) return;
+  ensureMyPaymentsArray(period);
+
+  const totals = calculateMyPaymentsTotals(period);
+
+  // 1. KPI Kartları
+  const elPendingAmt = document.getElementById("kpiMyPendingAmount");
+  if (elPendingAmt) elPendingAmt.textContent = formatCurrency(totals.unpaidAmount);
+
+  const elPendingCnt = document.getElementById("kpiMyPendingCount");
+  if (elPendingCnt) elPendingCnt.textContent = `${totals.unpaidCount} adet ödeme bekliyor`;
+
+  const elPaidAmt = document.getElementById("kpiMyPaidAmount");
+  if (elPaidAmt) elPaidAmt.textContent = formatCurrency(totals.paidAmount);
+
+  const elPaidCnt = document.getElementById("kpiMyPaidCount");
+  if (elPaidCnt) elPaidCnt.textContent = `${totals.paidCount} adet ödendi`;
+
+  const elTotalAmt = document.getElementById("kpiMyTotalAmount");
+  if (elTotalAmt) elTotalAmt.textContent = formatCurrency(totals.totalAmount);
+
+  const elTotalCnt = document.getElementById("kpiMyTotalCount");
+  if (elTotalCnt) elTotalCnt.textContent = `${totals.totalCount} adet toplam kayıt`;
+
+  const elUpcoming = document.getElementById("kpiMyUpcomingText");
+  if (elUpcoming) {
+    if (totals.upcoming) {
+      elUpcoming.textContent = `${formatDateTurkish(totals.upcoming.date)} (${totals.upcoming.title})`;
+    } else {
+      elUpcoming.textContent = "Bekleyen Ödeme Yok ✓";
+    }
+  }
+
+  // 2. Filtre Sayıları & Buton Durumları
+  const elCountAll = document.getElementById("countMyPayAll");
+  if (elCountAll) elCountAll.textContent = totals.totalCount;
+
+  const elCountUnpaid = document.getElementById("countMyPayUnpaid");
+  if (elCountUnpaid) elCountUnpaid.textContent = totals.unpaidCount;
+
+  const elCountPaid = document.getElementById("countMyPayPaid");
+  if (elCountPaid) elCountPaid.textContent = totals.paidCount;
+
+  const curFilter = appState.myPaymentsFilter || "all";
+  const btnAll = document.getElementById("btnFilterMyPayAll");
+  if (btnAll) btnAll.classList.toggle("active", curFilter === "all");
+  const btnUnpaid = document.getElementById("btnFilterMyPayUnpaid");
+  if (btnUnpaid) btnUnpaid.classList.toggle("active", curFilter === "unpaid");
+  const btnPaid = document.getElementById("btnFilterMyPayPaid");
+  if (btnPaid) btnPaid.classList.toggle("active", curFilter === "paid");
+
+  // Hızlı giriş formu varsayılan tarihi
+  const quickDate = document.getElementById("quickMyPaymentDateInput");
+  if (quickDate && !quickDate.value) {
+    quickDate.value = new Date().toISOString().split("T")[0];
+  }
+
+  // 3. Tablo Filtreleme & Döküm
+  const tbody = document.getElementById("myPaymentsListTableBody");
+  if (!tbody) return;
+
+  let list = [...(period.myPayments || [])];
+
+  // Durum filtresi
+  if (curFilter === "unpaid") {
+    list = list.filter(p => p.status !== "paid");
+  } else if (curFilter === "paid") {
+    list = list.filter(p => p.status === "paid");
+  }
+
+  // Kategori filtresi
+  const curCat = appState.myPaymentsCategoryFilter || "all";
+  if (curCat && curCat !== "all") {
+    list = list.filter(p => p.category === curCat);
+  }
+
+  // Metin arama filtresi
+  const searchQ = (appState.myPaymentsSearch || "").toLowerCase().trim();
+  if (searchQ) {
+    list = list.filter(p => {
+      const title = (p.title || "").toLowerCase();
+      const note = (p.note || "").toLowerCase();
+      const cat = (p.category || "").toLowerCase();
+      const date = (p.date || "").toLowerCase();
+      const amt = (p.amount || "").toString();
+      return title.includes(searchQ) || note.includes(searchQ) || cat.includes(searchQ) || date.includes(searchQ) || amt.includes(searchQ);
+    });
+  }
+
+  // Akıllı Sıralama: Bekleyenler (yakın tarihten uzağa), ardından Ödenenler (yakın tarihten eskiye)
+  const todayStr = new Date().toISOString().split("T")[0];
+  list.sort((a, b) => {
+    if (a.status !== b.status) {
+      return a.status === "unpaid" ? -1 : 1;
+    }
+    if (a.status === "unpaid") {
+      return (a.date || "").localeCompare(b.date || "");
+    } else {
+      return (b.date || "").localeCompare(a.date || "");
+    }
+  });
+
+  if (list.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align: center; color: var(--slate-400); padding: 2.5rem 1rem;">
+          <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">💳</div>
+          <div style="font-weight: 700; color: var(--slate-700); margin-bottom: 0.25rem;">Kayıtlı kişisel ödeme bulunamadı.</div>
+          <div style="font-size: 0.85rem; color: var(--slate-500);">Yukarıdaki hızlı giriş formundan veya "+ Yeni Ödeme" butonundan ödemelerinizi ekleyebilirsiniz.</div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = list.map((p, idx) => {
+    // Kategori rozet sınıfı
+    let catClass = "badge-cat-other";
+    const catStr = (p.category || "").toLowerCase();
+    if (catStr.includes("kart")) catClass = "badge-cat-card";
+    else if (catStr.includes("fatura")) catClass = "badge-cat-bill";
+    else if (catStr.includes("kira") || catStr.includes("aidat")) catClass = "badge-cat-rent";
+    else if (catStr.includes("kredi")) catClass = "badge-cat-loan";
+    else if (catStr.includes("sigorta") || catStr.includes("vergi") || catStr.includes("sgk") || catStr.includes("bağkur")) catClass = "badge-cat-tax";
+    else if (catStr.includes("alışveriş") || catStr.includes("market")) catClass = "badge-cat-shop";
+
+    // Vade durumu rozeti
+    let dueBadge = "";
+    if (p.status !== "paid" && p.date) {
+      if (p.date < todayStr) {
+        dueBadge = `<span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:0.7rem; font-weight:700; margin-left:6px; padding:2px 6px;">Gecikmiş!</span>`;
+      } else if (p.date === todayStr) {
+        dueBadge = `<span class="badge" style="background:#fef3c7; color:#b45309; font-size:0.7rem; font-weight:700; margin-left:6px; padding:2px 6px;">Bugün!</span>`;
+      }
+    }
+
+    const isPaid = p.status === "paid";
+    const statusBtn = isPaid
+      ? `<button type="button" class="btn-status-toggle status-paid" onclick="toggleMyPaymentStatus('${p.id}')" title="Bekliyor olarak değiştirmek için tıklayın">🟢 Ödendi ✓</button>`
+      : `<button type="button" class="btn-status-toggle status-unpaid" onclick="toggleMyPaymentStatus('${p.id}')" title="Ödendi olarak işaretlemek için tıklayın">🔴 Bekliyor</button>`;
+
+    return `
+      <tr style="${isPaid ? 'opacity: 0.85;' : 'background: #fff;'}">
+        <td style="font-weight: 700; color: var(--slate-400); width: 45px;">#${idx + 1}</td>
+        <td style="white-space: nowrap; font-weight: 600; color: var(--slate-800);">
+          📅 ${formatDateTurkish(p.date)}
+          ${dueBadge}
+        </td>
+        <td>
+          <div style="font-weight: 700; color: var(--slate-900); font-size: 0.95rem;">${escapeHtml(p.title)}</div>
+        </td>
+        <td>
+          <span class="badge-category ${catClass}">${escapeHtml(p.category || 'Diğer')}</span>
+        </td>
+        <td style="text-align: right;">
+          <span class="tabular-nums" style="font-weight: 800; font-size: 1rem; color: ${isPaid ? '#059669' : '#e11d48'};">
+            ${formatCurrency(p.amount)}
+          </span>
+        </td>
+        <td style="text-align: center;">
+          ${statusBtn}
+        </td>
+        <td style="color: var(--slate-600); font-size: 0.85rem; max-width: 220px;">
+          ${p.note ? escapeHtml(p.note) : '<span style="color:var(--slate-400);">-</span>'}
+        </td>
+        <td style="text-align: center; white-space: nowrap;">
+          <button type="button" class="btn-action-icon" onclick="openEditMyPaymentModal('${p.id}')" title="Ödemeyi Düzenle">✏️</button>
+          <button type="button" class="btn-action-icon danger" onclick="handleDeleteMyPayment('${p.id}')" title="Ödemeyi Sil">🗑️</button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function handleQuickMyPaymentSubmit(event) {
+  event.preventDefault();
+  const period = getActivePeriod();
+  if (!period) return;
+  ensureMyPaymentsArray(period);
+
+  const dateVal = document.getElementById("quickMyPaymentDateInput").value;
+  const titleVal = document.getElementById("quickMyPaymentTitleInput").value.trim();
+  const amountVal = parseFloat(document.getElementById("quickMyPaymentAmountInput").value) || 0;
+  const catVal = document.getElementById("quickMyPaymentCategorySelect").value || "Diğer";
+  const statusVal = document.getElementById("quickMyPaymentStatusSelect").value || "unpaid";
+  const noteVal = document.getElementById("quickMyPaymentNoteInput").value.trim();
+
+  if (!dateVal || !titleVal || amountVal <= 0) {
+    alert("Lütfen ödeme tarihi, ödeme bilgisi ve geçerli bir tutar giriniz.");
+    return;
+  }
+
+  const newPayment = {
+    id: "mypay_" + Date.now(),
+    date: dateVal,
+    title: titleVal,
+    amount: amountVal,
+    category: catVal,
+    status: statusVal,
+    paidDate: statusVal === "paid" ? dateVal : "",
+    note: noteVal,
+    createdAt: Date.now()
+  };
+
+  period.myPayments.unshift(newPayment);
+  saveData();
+  renderApp();
+
+  // Alanları sıfırla
+  document.getElementById("quickMyPaymentTitleInput").value = "";
+  document.getElementById("quickMyPaymentAmountInput").value = "";
+  document.getElementById("quickMyPaymentNoteInput").value = "";
+  showToast(`Ödeme kaydedildi: ${titleVal} (${formatCurrency(amountVal)})`);
+}
+
+function openAddMyPaymentModal() {
+  const form = document.getElementById("formMyPayment");
+  if (form) form.reset();
+
+  document.getElementById("myPaymentEditId").value = "";
+  document.getElementById("modalMyPaymentTitle").textContent = "💳 Yeni Ödeme Girişi";
+
+  const btnDel = document.getElementById("btnDeleteMyPayment");
+  if (btnDel) btnDel.style.display = "none";
+
+  const dateInput = document.getElementById("modalMyPaymentDate");
+  if (dateInput) {
+    dateInput.value = new Date().toISOString().split("T")[0];
+  }
+
+  openModal("modalMyPayment");
+}
+
+function openEditMyPaymentModal(paymentId) {
+  const period = getActivePeriod();
+  if (!period) return;
+  ensureMyPaymentsArray(period);
+
+  const p = (period.myPayments || []).find(item => item.id === paymentId);
+  if (!p) return;
+
+  document.getElementById("myPaymentEditId").value = p.id;
+  document.getElementById("modalMyPaymentTitle").textContent = "✏️ Ödeme Bilgisini Düzenle";
+
+  const btnDel = document.getElementById("btnDeleteMyPayment");
+  if (btnDel) btnDel.style.display = "inline-flex";
+
+  document.getElementById("modalMyPaymentDate").value = p.date || "";
+  document.getElementById("modalMyPaymentTitleInput").value = p.title || "";
+  document.getElementById("modalMyPaymentAmount").value = p.amount || "";
+  document.getElementById("modalMyPaymentCategory").value = p.category || "Diğer";
+  document.getElementById("modalMyPaymentStatus").value = p.status || "unpaid";
+  document.getElementById("modalMyPaymentNote").value = p.note || "";
+
+  openModal("modalMyPayment");
+}
+
+function handleSaveMyPayment(event) {
+  event.preventDefault();
+  const period = getActivePeriod();
+  if (!period) return;
+  ensureMyPaymentsArray(period);
+
+  const editId = document.getElementById("myPaymentEditId").value;
+  const dateVal = document.getElementById("modalMyPaymentDate").value;
+  const titleVal = document.getElementById("modalMyPaymentTitleInput").value.trim();
+  const amountVal = parseFloat(document.getElementById("modalMyPaymentAmount").value) || 0;
+  const catVal = document.getElementById("modalMyPaymentCategory").value || "Diğer";
+  const statusVal = document.getElementById("modalMyPaymentStatus").value || "unpaid";
+  const noteVal = document.getElementById("modalMyPaymentNote").value.trim();
+
+  if (!dateVal || !titleVal || amountVal <= 0) {
+    alert("Lütfen ödeme tarihi, ödeme bilgisi ve geçerli bir tutar giriniz.");
+    return;
+  }
+
+  if (editId) {
+    const existing = period.myPayments.find(p => p.id === editId);
+    if (existing) {
+      existing.date = dateVal;
+      existing.title = titleVal;
+      existing.amount = amountVal;
+      existing.category = catVal;
+      existing.status = statusVal;
+      existing.paidDate = statusVal === "paid" ? (existing.paidDate || dateVal) : "";
+      existing.note = noteVal;
+    }
+    showToast(`Ödeme güncellendi: ${titleVal}`);
+  } else {
+    period.myPayments.unshift({
+      id: "mypay_" + Date.now(),
+      date: dateVal,
+      title: titleVal,
+      amount: amountVal,
+      category: catVal,
+      status: statusVal,
+      paidDate: statusVal === "paid" ? dateVal : "",
+      note: noteVal,
+      createdAt: Date.now()
+    });
+    showToast(`Yeni ödeme eklendi: ${titleVal}`);
+  }
+
+  saveData();
+  closeModal("modalMyPayment");
+  renderApp();
+}
+
+function handleDeleteMyPayment(paymentId) {
+  const period = getActivePeriod();
+  if (!period || !period.myPayments) return;
+
+  const p = period.myPayments.find(item => item.id === paymentId);
+  if (!p) return;
+
+  if (!confirm(`"${p.title}" (${formatCurrency(p.amount)}) ödemesini silmek istediğinize emin misiniz?`)) {
+    return;
+  }
+
+  const idx = period.myPayments.findIndex(item => item.id === paymentId);
+  if (idx !== -1) {
+    period.myPayments.splice(idx, 1);
+  }
+
+  saveData();
+  renderApp();
+  showToast(`Ödeme silindi: ${p.title}`);
+}
+
+function handleModalDeleteMyPayment() {
+  const editId = document.getElementById("myPaymentEditId").value;
+  if (editId) {
+    closeModal("modalMyPayment");
+    handleDeleteMyPayment(editId);
+  }
+}
+
+function toggleMyPaymentStatus(paymentId) {
+  const period = getActivePeriod();
+  if (!period || !period.myPayments) return;
+
+  const p = period.myPayments.find(item => item.id === paymentId);
+  if (!p) return;
+
+  if (p.status === "paid") {
+    p.status = "unpaid";
+    p.paidDate = "";
+    showToast(`🔴 "${p.title}" durumu Bekliyor olarak güncellendi.`);
+  } else {
+    p.status = "paid";
+    p.paidDate = new Date().toISOString().split("T")[0];
+    showToast(`🟢 "${p.title}" Ödendi olarak işaretlendi! 🎉`);
+  }
+
+  saveData();
+  renderApp();
+}
+
+function setMyPaymentFilter(filter) {
+  appState.myPaymentsFilter = filter;
+  renderMyPayments(getActivePeriod());
+}
+
+function handleMyPaymentCategoryFilter(category) {
+  appState.myPaymentsCategoryFilter = category;
+  renderMyPayments(getActivePeriod());
+}
+
+function handleMyPaymentSearch(query) {
+  appState.myPaymentsSearch = query;
+  renderMyPayments(getActivePeriod());
+}
+
+function exportMyPaymentsToCSV() {
+  const period = getActivePeriod();
+  if (!period) return;
+  ensureMyPaymentsArray(period);
+
+  const list = period.myPayments || [];
+  if (list.length === 0) {
+    alert("Dışa aktarılacak ödeme kaydı bulunamadı.");
+    return;
+  }
+
+  let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+  csvContent += "Tarih,Ödeme Bilgisi,Kategori,Tutar (TL),Durum,Ödendiği Tarih,Not / Açıklama\n";
+
+  list.forEach(p => {
+    const row = [
+      `"${p.date || ''}"`,
+      `"${(p.title || '').replace(/"/g, '""')}"`,
+      `"${(p.category || '').replace(/"/g, '""')}"`,
+      `"${p.amount || 0}"`,
+      `"${p.status === 'paid' ? 'Ödendi' : 'Bekliyor'}"`,
+      `"${p.paidDate || ''}"`,
+      `"${(p.note || '').replace(/"/g, '""')}"`
+    ];
+    csvContent += row.join(",") + "\n";
+  });
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `Cem_Baba_Odemelerim_${period.id}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 // --------------------------------------------------------------------------
-// ÖDEMELER VE TAHSİLAT KONTROL PANELİ (TARİH VE ÖDEME BİLGİSİ)
+// ÖĞRENCİ TAHSİLAT KONTROL PANELİ (DERS ÜCRETİ & BAKİYE)
 // --------------------------------------------------------------------------
 function renderPayments(totals, period) {
   ensurePaymentsArray(period);

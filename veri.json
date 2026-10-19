@@ -48,7 +48,16 @@
         "Nisan":   { "yalin": 0, "sarp": 0, "can12": 0, "ural": 0, "ege": 0, "melis": 0, "eylul": 0 },
         "Mayıs":   { "yalin": 0, "sarp": 0, "can12": 0, "ural": 0, "ege": 0, "melis": 0, "eylul": 0 },
         "Haziran": { "yalin": 0, "sarp": 0, "can12": 0, "ural": 0, "ege": 0, "melis": 0, "eylul": 0 }
-      }
+      },
+      "myPayments": [
+        { "id": "mypay_1", "date": "2026-10-24", "title": "Garanti BBVA Kredi Kartı", "amount": 14500, "category": "Kredi Kartı", "status": "unpaid", "paidDate": "", "note": "Son ödeme günü 24 Ekim" },
+        { "id": "mypay_2", "date": "2026-10-15", "title": "Ev Kirası", "amount": 22000, "category": "Kira & Aidat", "status": "paid", "paidDate": "2026-10-15", "note": "Ekim ayı ev kirası ev sahibine ödendi" },
+        { "id": "mypay_3", "date": "2026-10-28", "title": "İgdaş Doğalgaz Faturası", "amount": 1250, "category": "Fatura", "status": "unpaid", "paidDate": "", "note": "Son gün 28 Ekim" },
+        { "id": "mypay_4", "date": "2026-10-18", "title": "Turkcell Telefon & İnternet", "amount": 890, "category": "Fatura", "status": "paid", "paidDate": "2026-10-18", "note": "Otomatik ödeme talimatı ödendi" },
+        { "id": "mypay_5", "date": "2026-10-25", "title": "Site Aidatı", "amount": 1500, "category": "Kira & Aidat", "status": "unpaid", "paidDate": "", "note": "Ekim ayı aidatı" },
+        { "id": "mypay_6", "date": "2026-10-31", "title": "Bağkur / SGK Primi", "amount": 7800, "category": "Sigorta & Vergi", "status": "unpaid", "paidDate": "", "note": "Son gün ay sonu" },
+        { "id": "mypay_7", "date": "2026-10-12", "title": "Yapı Kredi Kredi Taksiti", "amount": 6400, "category": "Kredi Taksiti", "status": "paid", "paidDate": "2026-10-12", "note": "10/24 taksit ödendi" }
+      ]
     },
     {
       "id": "2025-2026",
