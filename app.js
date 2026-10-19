@@ -456,11 +456,49 @@ function renderApp() {
 
 // KPI Kartları
 function renderKPIs(totals, period) {
-  document.getElementById("kpiTotalRevenue").textContent = formatCurrency(totals.totalRevenue);
-  document.getElementById("kpiTotalPaid").textContent = formatCurrency(totals.totalPaid);
-  document.getElementById("kpiTotalUnpaid").textContent = formatCurrency(totals.totalUnpaid);
-  document.getElementById("kpiTotalLessons").textContent = totals.totalLessons + " Ders";
-  document.getElementById("kpiActiveStudents").textContent = period.students.length + " Öğrenci";
+  const elRev = document.getElementById("kpiTotalRevenue");
+  if (elRev) elRev.textContent = formatCurrency(totals.totalRevenue);
+
+  const elPaid = document.getElementById("kpiTotalPaid");
+  if (elPaid) elPaid.textContent = formatCurrency(totals.totalPaid);
+
+  const elUnpaid = document.getElementById("kpiTotalUnpaid");
+  if (elUnpaid) elUnpaid.textContent = formatCurrency(totals.totalUnpaid);
+
+  const elLessons = document.getElementById("kpiTotalLessons");
+  if (elLessons) elLessons.textContent = totals.totalLessons + " Ders";
+
+  const elStudents = document.getElementById("kpiActiveStudents");
+  if (elStudents) elStudents.textContent = (period.students ? period.students.length : 0) + " Öğrenci";
+
+  // Kişisel Ödemeler Kartları (Aktif Öğrenci kutusunun yanındaki kutular)
+  const myTotals = calculateMyPaymentsTotals(period);
+
+  const elMyExp = document.getElementById("kpiMyTotalExpenses");
+  if (elMyExp) elMyExp.textContent = formatCurrency(myTotals.totalAmount);
+
+  const elMyExpSub = document.getElementById("kpiMyTotalExpensesSub");
+  if (elMyExpSub) elMyExpSub.textContent = `${myTotals.totalCount} adet gider kaydı ↗️`;
+
+  const elMyPending = document.getElementById("kpiMyPendingExpenses");
+  if (elMyPending) elMyPending.textContent = formatCurrency(myTotals.unpaidAmount);
+
+  const elMyPendingSub = document.getElementById("kpiMyPendingExpensesSub");
+  if (elMyPendingSub) elMyPendingSub.textContent = `${myTotals.unpaidCount} adet ödeme bekliyor ↗️`;
+
+  const elMyNet = document.getElementById("kpiMyNetBalance");
+  const elMyNetSub = document.getElementById("kpiMyNetBalanceSub");
+  if (elMyNet) {
+    const net = totals.totalRevenue - myTotals.totalAmount;
+    elMyNet.textContent = formatCurrency(net);
+    if (net >= 0) {
+      elMyNet.style.color = "var(--success)";
+      if (elMyNetSub) elMyNetSub.textContent = "Net Fazla (+) ↗️";
+    } else {
+      elMyNet.style.color = "var(--danger)";
+      if (elMyNetSub) elMyNetSub.textContent = "Net Açık (-) ↗️";
+    }
+  }
 }
 
 // Dashboard Görünümü
