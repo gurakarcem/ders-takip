@@ -52,6 +52,20 @@ window.INITIAL_DERS_DATA = {
         { id: "les_16", studentId: "eylul", date: "2026-09-27", month: "Eylül", rate: 4000, isPaid: true, paidDate: "2026-09-28", note: "Kanada transferi" },
         { id: "les_17", studentId: "eylul", date: "2026-10-04", month: "Ekim", rate: 3500, isPaid: false, paidDate: "", note: "Ödeme bekleniyor" }
       ],
+      payments: [
+        { id: "pay_1", studentId: "yalin", date: "2026-08-25", amount: 3000, type: "Banka Havalesi / EFT", note: "Ağustos ayı ders ödemesi", lessonId: "les_1" },
+        { id: "pay_2", studentId: "yalin", date: "2026-09-01", amount: 3500, type: "Banka Havalesi / EFT", note: "Eylül 1. ders ödemesi", lessonId: "les_2" },
+        { id: "pay_3", studentId: "yalin", date: "2026-09-10", amount: 3500, type: "FAST", note: "Eylül 2. ders havalesi", lessonId: "les_3" },
+        { id: "pay_4", studentId: "yalin", date: "2026-09-15", amount: 3500, type: "Banka Havalesi / EFT", note: "Garanti BBVA Dekont", lessonId: "les_4" },
+        { id: "pay_5", studentId: "yalin", date: "2026-09-25", amount: 3500, type: "FAST", note: "Eylül 4. ders ödemesi", lessonId: "les_5" },
+        { id: "pay_6", studentId: "yalin", date: "2026-09-30", amount: 3500, type: "Banka Havalesi / EFT", note: "Eylül son ders ödemesi", lessonId: "les_6" },
+        { id: "pay_7", studentId: "sarp", date: "2026-09-28", amount: 3000, type: "Banka Havalesi / EFT", note: "Eylül ayı ders ödemesi", lessonId: "les_8" },
+        { id: "pay_8", studentId: "ural", date: "2026-09-15", amount: 4000, type: "Banka Havalesi / EFT", note: "Eylül 1. ders EFT", lessonId: "les_10" },
+        { id: "pay_9", studentId: "ural", date: "2026-09-20", amount: 4000, type: "FAST", note: "Eylül 2. ders", lessonId: "les_11" },
+        { id: "pay_10", studentId: "ural", date: "2026-09-25", amount: 4000, type: "Banka Havalesi / EFT", note: "Eylül 3. ders", lessonId: "les_12" },
+        { id: "pay_11", studentId: "melis", date: "2026-09-25", amount: 3500, type: "Nakit / Elden", note: "Elden teslim alındı", lessonId: "les_14" },
+        { id: "pay_12", studentId: "eylul", date: "2026-09-28", amount: 4000, type: "Banka Havalesi / EFT", note: "Kanada transferi", lessonId: "les_16" }
+      ],
       monthlyLessons: {
         "Ağustos": { yalin: 1, sarp: 0, can12: 0, ural: 0, ege: 0, melis: 0, eylul: 0 },
         "Eylül":   { yalin: 5, sarp: 1, can12: 0, ural: 3, ege: 0, melis: 1, eylul: 1 },

@@ -22,6 +22,8 @@ let appState = {
   activeTab: "dashboard",
   paymentFilter: "all",  // 'all', 'unpaid', 'paid'
   paymentStudentFilter: "all",
+  paymentHistoryFilter: "all",
+  paymentHistorySearch: "",
   gcalEmail: "",
   charts: {
     revenue: null,
@@ -45,7 +47,10 @@ function initApp() {
           appState.activePeriodId = newData.activePeriodId;
         }
         if (appState.data.periods) {
-          appState.data.periods.forEach(p => ensureLessonsArray(p));
+          appState.data.periods.forEach(p => {
+            ensureLessonsArray(p);
+            ensurePaymentsArray(p);
+          });
         }
         populatePeriodSelect();
         renderApp();
@@ -88,9 +93,12 @@ function loadData() {
     appState.activePeriodId = appState.data.activePeriodId;
   }
 
-  // Her dönem için dersler dizisinin (lessons) varlığını garanti et
+  // Her dönem için dersler ve ödemeler dizilerinin varlığını garanti et
   if (appState.data && appState.data.periods) {
-    appState.data.periods.forEach(p => ensureLessonsArray(p));
+    appState.data.periods.forEach(p => {
+      ensureLessonsArray(p);
+      ensurePaymentsArray(p);
+    });
   }
 }
 
@@ -114,7 +122,10 @@ function resetToDefaultData() {
     appState.data = JSON.parse(JSON.stringify(window.INITIAL_DERS_DATA));
     appState.activePeriodId = appState.data.activePeriodId || "2026-2027";
     if (appState.data.periods) {
-      appState.data.periods.forEach(p => ensureLessonsArray(p));
+      appState.data.periods.forEach(p => {
+        ensureLessonsArray(p);
+        ensurePaymentsArray(p);
+      });
     }
     saveData();
     populatePeriodSelect();
@@ -131,6 +142,7 @@ function getActivePeriod() {
 
 // Dersler dizisini oluştur (eğer yoksa geçmiş tarihlerden sentezle)
 function ensureLessonsArray(period) {
+  if (!period) return;
   if (!period.lessons || period.lessons.length === 0) {
     period.lessons = [];
     const datesMap = period.lessonDates || {};
@@ -166,12 +178,39 @@ function ensureLessonsArray(period) {
   }
 }
 
+// Ödemeler dizisini garanti et (eğer yoksa geçmiş ödenmiş derslerden sentezle)
+function ensurePaymentsArray(period) {
+  if (!period) return;
+  if (!period.payments) {
+    period.payments = [];
+    if (period.lessons && period.lessons.length > 0) {
+      let counter = 1;
+      period.lessons.forEach(l => {
+        if (l.isPaid) {
+          period.payments.push({
+            id: "pay_" + (l.id || counter++),
+            studentId: l.studentId,
+            date: l.paidDate || l.date,
+            amount: parseFloat(l.rate) || 0,
+            type: "Banka Havalesi / EFT",
+            note: l.note ? `Ders ödemesi (${l.note})` : "Ders ödemesi",
+            lessonId: l.id,
+            createdAt: Date.now()
+          });
+        }
+      });
+    }
+  }
+}
+
 // Hesaplamalar (Toplamlar, Tahsilat, Bakiye)
 function calculateTotals(period) {
   if (!period) return {
     totalLessons: 0, totalRevenue: 0, totalPaid: 0, totalUnpaid: 0,
     avgRate: 0, studentTotals: {}, monthTotals: {}
   };
+
+  ensurePaymentsArray(period);
 
   let totalLessons = 0;
   let totalRevenue = 0;
@@ -183,7 +222,7 @@ function calculateTotals(period) {
 
   // Öğrenci bazında sıfırla
   period.students.forEach(s => {
-    studentTotals[s.id] = { lessons: 0, revenue: 0, paid: 0, unpaid: 0, avgRate: 0 };
+    studentTotals[s.id] = { lessons: 0, revenue: 0, paid: 0, unpaid: 0, balance: 0, avgRate: 0, paymentsCount: 0 };
   });
 
   // Ay bazında sıfırla
@@ -196,43 +235,43 @@ function calculateTotals(period) {
     const sId = l.studentId;
     const m = l.month;
     const rate = parseFloat(l.rate) || 0;
-    const isPaid = !!l.isPaid;
 
     totalLessons += 1;
     totalRevenue += rate;
 
-    if (isPaid) {
-      totalPaid += rate;
-    } else {
-      totalUnpaid += rate;
-    }
-
     if (studentTotals[sId]) {
       studentTotals[sId].lessons += 1;
       studentTotals[sId].revenue += rate;
-      if (isPaid) {
-        studentTotals[sId].paid += rate;
-      } else {
-        studentTotals[sId].unpaid += rate;
-      }
     }
 
     if (monthTotals[m]) {
       monthTotals[m].lessons += 1;
       monthTotals[m].revenue += rate;
-      if (isPaid) {
-        monthTotals[m].paid += rate;
-      } else {
-        monthTotals[m].unpaid += rate;
-      }
     }
   });
 
-  // Öğrenci ve ay ortalamaları
+  // Ödemelerden toplam tahsilatı hesapla
+  const payments = period.payments || [];
+  payments.forEach(p => {
+    const sId = p.studentId;
+    const amt = parseFloat(p.amount) || 0;
+    totalPaid += amt;
+
+    if (studentTotals[sId]) {
+      studentTotals[sId].paid += amt;
+      studentTotals[sId].paymentsCount = (studentTotals[sId].paymentsCount || 0) + 1;
+    }
+  });
+
+  // Öğrenci bazında borç ve bakiye
   period.students.forEach(s => {
     const st = studentTotals[s.id];
+    st.unpaid = Math.max(0, st.revenue - st.paid);
+    st.balance = st.paid - st.revenue; // Pozitifse fazla/avans ödeme, negatifse kalan borç
     st.avgRate = st.lessons > 0 ? Math.round(st.revenue / st.lessons) : (s.rate || 0);
   });
+
+  totalUnpaid = Math.max(0, totalRevenue - totalPaid);
 
   MONTHS.forEach(m => {
     const mt = monthTotals[m];
@@ -822,6 +861,30 @@ function handleSaveEditLesson(event) {
   lesson.paidDate = newPaid ? (lesson.paidDate || newDate) : "";
   lesson.note = newNote;
 
+  // 4. Ödemeler listesini senkronize et
+  ensurePaymentsArray(period);
+  const existingPayIdx = period.payments.findIndex(p => p.lessonId === lessonId);
+  if (newPaid) {
+    if (existingPayIdx !== -1) {
+      period.payments[existingPayIdx].studentId = newStudentId;
+      period.payments[existingPayIdx].amount = newRate;
+      period.payments[existingPayIdx].date = lesson.paidDate || newDate;
+    } else {
+      period.payments.unshift({
+        id: "pay_" + lessonId,
+        studentId: newStudentId,
+        date: lesson.paidDate || newDate,
+        amount: newRate,
+        type: "Banka Havalesi / EFT",
+        note: newNote ? `Ders ödemesi (${newNote})` : "Ders ödemesi",
+        lessonId: lessonId,
+        createdAt: Date.now()
+      });
+    }
+  } else if (existingPayIdx !== -1) {
+    period.payments.splice(existingPayIdx, 1);
+  }
+
   saveData();
   closeModal("modalEditLesson");
   renderApp();
@@ -866,6 +929,12 @@ function handleDeleteCurrentLesson() {
     period.monthlyRevenue[m][sId] = Math.max(0, period.monthlyRevenue[m][sId] - r);
   }
 
+  // 4. İlişkili ödeme varsa sil
+  if (period.payments) {
+    const payIdx = period.payments.findIndex(p => p.lessonId === lessonId);
+    if (payIdx !== -1) period.payments.splice(payIdx, 1);
+  }
+
   saveData();
   closeModal("modalEditLesson");
   renderApp();
@@ -873,16 +942,137 @@ function handleDeleteCurrentLesson() {
 }
 
 // --------------------------------------------------------------------------
-// ÖDEME VE TAHSİLAT KONTROL PANELİ
+// ÖDEMELER VE TAHSİLAT KONTROL PANELİ (TARİH VE ÖDEME BİLGİSİ)
 // --------------------------------------------------------------------------
 function renderPayments(totals, period) {
+  ensurePaymentsArray(period);
+
+  // 1. Hızlı Ödeme Girişi Formu Öğrenci Seçicisi & Tarihi
+  const quickSelect = document.getElementById("quickPaymentStudentSelect");
+  if (quickSelect) {
+    const curVal = quickSelect.value;
+    quickSelect.innerHTML = `<option value="">Öğrenci Seçiniz...</option>` + period.students.map(s => {
+      const st = totals.studentTotals[s.id] || { unpaid: 0, revenue: 0, paid: 0 };
+      const debtText = st.unpaid > 0 ? ` (Borç: ${formatCurrency(st.unpaid)})` : (st.paid > st.revenue ? ` (Avans: +${formatCurrency(st.paid - st.revenue)})` : ` (Borç Yok)`);
+      return `<option value="${s.id}" ${s.id === curVal ? 'selected' : ''}>${escapeHtml(s.name)}${debtText}</option>`;
+    }).join("");
+  }
+
+  const quickDate = document.getElementById("quickPaymentDateInput");
+  if (quickDate && !quickDate.value) {
+    quickDate.value = new Date().toISOString().split("T")[0];
+  }
+
+  // 2. Kayıtlı Ödemeler Öğrenci Filtresi Seçicisi
+  const filterHistSelect = document.getElementById("filterPaymentsStudentSelect");
+  if (filterHistSelect) {
+    const curVal = appState.paymentHistoryFilter || "all";
+    filterHistSelect.innerHTML = `<option value="all">Tüm Öğrencilerin Ödemeleri (${period.payments.length})</option>` + period.students.map(s => {
+      const count = period.payments.filter(p => p.studentId === s.id).length;
+      return `<option value="${s.id}" ${s.id === curVal ? 'selected' : ''}>${escapeHtml(s.name)} (${count} Ödeme)</option>`;
+    }).join("");
+  }
+
+  // 3. Kayıtlı Ödemeler Listesi Tablosu
+  const histTableBody = document.getElementById("paymentsListTableBody");
+  if (histTableBody) {
+    let payments = [...(period.payments || [])];
+
+    // Öğrenci filtresi
+    if (appState.paymentHistoryFilter && appState.paymentHistoryFilter !== "all") {
+      payments = payments.filter(p => p.studentId === appState.paymentHistoryFilter);
+    }
+
+    // Metin araması (dekont, not, öğrenci adı, ödeme şekli, tutar, tarih)
+    if (appState.paymentHistorySearch) {
+      const q = appState.paymentHistorySearch.toLowerCase().trim();
+      payments = payments.filter(p => {
+        const s = period.students.find(st => st.id === p.studentId);
+        const sName = (s?.name || "").toLowerCase();
+        const note = (p.note || "").toLowerCase();
+        const type = (p.type || "").toLowerCase();
+        const date = (p.date || "").toLowerCase();
+        const amt = (p.amount || "").toString();
+        return sName.includes(q) || note.includes(q) || type.includes(q) || date.includes(q) || amt.includes(q);
+      });
+    }
+
+    // Tarihe göre yeniden eskiye sırala
+    payments.sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || 0) - (a.createdAt || 0));
+
+    if (payments.length === 0) {
+      histTableBody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; color: var(--slate-400); padding: 2.5rem 1rem;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">💳</div>
+            <div style="font-weight: 600; color: var(--slate-600); margin-bottom: 0.25rem;">Henüz kayıtlı ödeme bulunmuyor.</div>
+            <div style="font-size: 0.85rem;">Yukarıdaki hızlı giriş formundan tarih ve ödeme bilgisi ekleyebilirsiniz.</div>
+          </td>
+        </tr>
+      `;
+    } else {
+      histTableBody.innerHTML = payments.map((p, idx) => {
+        const s = period.students.find(st => st.id === p.studentId);
+        const sName = s ? s.name : p.studentId;
+        const sGrade = s?.grade ? ` (${s.grade})` : "";
+
+        // Ödeme türü rozet sınıfı
+        let typeBadgeClass = "badge-type-transfer";
+        const typeStr = (p.type || "").toLowerCase();
+        if (typeStr.includes("fast")) typeBadgeClass = "badge-type-fast";
+        else if (typeStr.includes("nakit") || typeStr.includes("elden")) typeBadgeClass = "badge-type-cash";
+        else if (typeStr.includes("kart")) typeBadgeClass = "badge-type-card";
+        else if (typeStr.includes("diğer")) typeBadgeClass = "badge-type-other";
+
+        return `
+          <tr>
+            <td style="font-weight: 700; color: var(--slate-500); width: 45px;">#${payments.length - idx}</td>
+            <td style="font-weight: 700; color: var(--slate-800); white-space: nowrap;">
+              📅 ${formatDateTurkish(p.date)}
+            </td>
+            <td>
+              <div style="font-weight: 700; color: var(--slate-900);">${escapeHtml(sName)}</div>
+              <div style="font-size: 0.75rem; color: var(--slate-500);">${escapeHtml(sGrade)}</div>
+            </td>
+            <td class="tabular-nums payment-amount-cell">
+              +${formatCurrency(p.amount)}
+            </td>
+            <td style="text-align: center;">
+              <span class="payment-type-badge ${typeBadgeClass}">
+                ${escapeHtml(p.type || 'Banka Havalesi / EFT')}
+              </span>
+            </td>
+            <td style="color: var(--slate-700); font-size: 0.875rem;">
+              ${escapeHtml(p.note || '—')}
+            </td>
+            <td style="text-align: center; white-space: nowrap;">
+              <button class="btn-action-icon" onclick="openEditPaymentModal('${p.id}')" title="Tarih, tutar veya notu düzenle">
+                ✏️ Düzenle
+              </button>
+              <button class="btn-action-icon danger" onclick="handleDeletePayment('${p.id}')" title="Bu ödemeyi sil">
+                🗑️
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+  }
+
+  // 4. Öğrenci Bakiye ve Tahsilat Durumu Tablosu
   const sTableBody = document.getElementById("studentPaymentsSummaryBody");
   if (sTableBody) {
     sTableBody.innerHTML = period.students.map(s => {
-      const st = totals.studentTotals[s.id] || { lessons: 0, revenue: 0, paid: 0, unpaid: 0 };
-      const statusBadge = st.unpaid > 0
-        ? `<span class="payment-badge unpaid">🔴 ${formatCurrency(st.unpaid)} Yatırılmadı</span>`
-        : `<span class="payment-badge paid">🟢 Ödendi</span>`;
+      const st = totals.studentTotals[s.id] || { lessons: 0, revenue: 0, paid: 0, unpaid: 0, balance: 0 };
+      
+      let statusBadge = "";
+      if (st.unpaid > 0) {
+        statusBadge = `<span class="payment-badge unpaid">🔴 ${formatCurrency(st.unpaid)} Kalan Borç</span>`;
+      } else if (st.balance > 0) {
+        statusBadge = `<span class="payment-badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;">🔵 +${formatCurrency(st.balance)} Avans</span>`;
+      } else {
+        statusBadge = `<span class="payment-badge paid">🟢 Borç Yok (Ödendi)</span>`;
+      }
 
       return `
         <tr>
@@ -904,8 +1094,11 @@ function renderPayments(totals, period) {
             ${formatCurrency(st.unpaid)}
           </td>
           <td style="text-align: center;">${statusBadge}</td>
-          <td style="text-align: right;">
-            <button class="btn btn-secondary" style="padding: 3px 8px; font-size: 0.775rem;" onclick="viewStudentDetails('${s.id}')">
+          <td style="text-align: right; white-space: nowrap;">
+            <button class="btn btn-success" style="padding: 3px 8px; font-size: 0.775rem;" onclick="openAddPaymentModal('${s.id}')" title="Bu öğrenciye yeni ödeme ekle">
+              💳 Ödeme Gir
+            </button>
+            <button class="btn btn-secondary" style="padding: 3px 8px; font-size: 0.775rem; margin-left: 4px;" onclick="viewStudentDetails('${s.id}')">
               Döküm Gör
             </button>
           </td>
@@ -914,74 +1107,386 @@ function renderPayments(totals, period) {
     }).join("");
   }
 
+  // 5. Ders Bazlı Ödeme Kontrol Listesi
   const pTableBody = document.getElementById("lessonsPaymentTableBody");
-  if (!pTableBody) return;
+  if (pTableBody) {
+    const pStudentSelect = document.getElementById("filterPaymentStudentSelect");
+    if (pStudentSelect && pStudentSelect.options.length <= 1) {
+      pStudentSelect.innerHTML = `<option value="all">Tüm Öğrenciler</option>` + period.students.map(s => `
+        <option value="${s.id}">${escapeHtml(s.name)}</option>
+      `).join("");
+    }
 
-  const pStudentSelect = document.getElementById("filterPaymentStudentSelect");
-  if (pStudentSelect && pStudentSelect.options.length <= 1) {
-    pStudentSelect.innerHTML = `<option value="all">Tüm Öğrenciler</option>` + period.students.map(s => `
-      <option value="${s.id}">${escapeHtml(s.name)}</option>
-    `).join("");
+    let lessons = [...(period.lessons || [])];
+
+    if (appState.paymentFilter === "paid") {
+      lessons = lessons.filter(l => l.isPaid);
+    } else if (appState.paymentFilter === "unpaid") {
+      lessons = lessons.filter(l => !l.isPaid);
+    }
+
+    if (appState.paymentStudentFilter !== "all") {
+      lessons = lessons.filter(l => l.studentId === appState.paymentStudentFilter);
+    }
+
+    lessons.sort((a, b) => b.date.localeCompare(a.date));
+
+    if (lessons.length === 0) {
+      pTableBody.innerHTML = `
+        <tr><td colspan="9" style="text-align: center; color: var(--slate-400); padding: 2rem;">
+          Seçilen filtreye uygun ders kaydı bulunamadı.
+        </td></tr>
+      `;
+    } else {
+      pTableBody.innerHTML = lessons.map((l, idx) => {
+        const s = period.students.find(st => st.id === l.studentId);
+        const sName = s ? s.name : l.studentId;
+
+        const toggleBtn = l.isPaid
+          ? `<button class="btn-toggle-pay is-paid" onclick="toggleLessonPayment('${l.id}')" title="Durumu 'Yatırılmadı' yapmak için tıklayın">🟢 Ödendi</button>`
+          : `<button class="btn-toggle-pay is-unpaid" onclick="toggleLessonPayment('${l.id}')" title="Durumu 'Ödendi' yapmak için tıklayın">🔴 Yatırılmadı</button>`;
+
+        return `
+          <tr>
+            <td style="font-weight: 700; color: var(--slate-500); width: 40px;">#${lessons.length - idx}</td>
+            <td style="font-weight: 600;">${formatDateTurkish(l.date)}</td>
+            <td style="font-weight: 700; color: var(--slate-900);">${escapeHtml(sName)}</td>
+            <td><span class="badge badge-blue">${l.month}</span></td>
+            <td class="tabular-nums" style="text-align: right; font-weight: 700; color: var(--primary);">${formatCurrency(l.rate)}</td>
+            <td style="text-align: center;">${toggleBtn}</td>
+            <td style="text-align: center;">
+              <button class="btn btn-secondary" style="padding: 3px 8px; font-size: 0.775rem;" onclick="openEditLessonModal('${l.id}')" title="Fiyat ve Tarih Değiştir">
+                ✏️ Düzenle
+              </button>
+            </td>
+            <td style="text-align: center;">
+              <button class="btn-gcal-action" onclick="openGoogleCalendarForLesson('${l.id}')" title="Google Takvim'e Ekle">
+                📅 Takvim
+              </button>
+            </td>
+            <td style="font-size: 0.8rem; color: var(--slate-500);">${escapeHtml(l.note || '—')}</td>
+          </tr>
+        `;
+      }).join("");
+    }
   }
+}
 
-  let lessons = [...(period.lessons || [])];
+// --------------------------------------------------------------------------
+// ÖDEME İŞLEMLERİ: EKLEME, DÜZENLEME, SİLME & CSV AKTARIMI
+// --------------------------------------------------------------------------
+function handleQuickPaymentSubmit(event) {
+  event.preventDefault();
+  const period = getActivePeriod();
+  if (!period) return;
+  ensurePaymentsArray(period);
 
-  if (appState.paymentFilter === "paid") {
-    lessons = lessons.filter(l => l.isPaid);
-  } else if (appState.paymentFilter === "unpaid") {
-    lessons = lessons.filter(l => !l.isPaid);
+  const studentId = document.getElementById("quickPaymentStudentSelect")?.value;
+  const dateVal = document.getElementById("quickPaymentDateInput")?.value;
+  const amountVal = parseFloat(document.getElementById("quickPaymentAmountInput")?.value) || 0;
+  const typeVal = document.getElementById("quickPaymentTypeSelect")?.value || "Banka Havalesi / EFT";
+  const noteVal = document.getElementById("quickPaymentNoteInput")?.value.trim() || "";
+
+  if (!studentId) {
+    alert("Lütfen bir öğrenci seçiniz.");
+    return;
   }
-
-  if (appState.paymentStudentFilter !== "all") {
-    lessons = lessons.filter(l => l.studentId === appState.paymentStudentFilter);
+  if (!dateVal) {
+    alert("Lütfen ödeme tarihini giriniz.");
+    return;
   }
-
-  lessons.sort((a, b) => b.date.localeCompare(a.date));
-
-  if (lessons.length === 0) {
-    pTableBody.innerHTML = `
-      <tr><td colspan="9" style="text-align: center; color: var(--slate-400); padding: 2rem;">
-        Seçilen filtreye uygun ders kaydı bulunamadı.
-      </td></tr>
-    `;
+  if (amountVal <= 0) {
+    alert("Lütfen geçerli bir ödeme tutarı giriniz.");
     return;
   }
 
-  pTableBody.innerHTML = lessons.map((l, idx) => {
-    const s = period.students.find(st => st.id === l.studentId);
-    const sName = s ? s.name : l.studentId;
+  const student = period.students.find(s => s.id === studentId);
+  const sName = student ? student.name : "Öğrenci";
 
-    const toggleBtn = l.isPaid
-      ? `<button class="btn-toggle-pay is-paid" onclick="toggleLessonPayment('${l.id}')" title="Durumu 'Yatırılmadı' yapmak için tıklayın">🟢 Ödendi</button>`
-      : `<button class="btn-toggle-pay is-unpaid" onclick="toggleLessonPayment('${l.id}')" title="Durumu 'Ödendi' yapmak için tıklayın">🔴 Yatırılmadı</button>`;
+  const newPayment = {
+    id: "pay_" + Date.now(),
+    studentId: studentId,
+    date: dateVal,
+    amount: amountVal,
+    type: typeVal,
+    note: noteVal,
+    createdAt: Date.now()
+  };
 
-    return `
-      <tr>
-        <td style="font-weight: 700; color: var(--slate-500); width: 40px;">#${lessons.length - idx}</td>
-        <td style="font-weight: 600;">${formatDateTurkish(l.date)}</td>
-        <td style="font-weight: 700; color: var(--slate-900);">${escapeHtml(sName)}</td>
-        <td><span class="badge badge-blue">${l.month}</span></td>
-        <td class="tabular-nums" style="text-align: right; font-weight: 700; color: var(--primary);">${formatCurrency(l.rate)}</td>
-        <td style="text-align: center;">${toggleBtn}</td>
-        <td style="text-align: center;">
-          <button class="btn btn-secondary" style="padding: 3px 8px; font-size: 0.775rem;" onclick="openEditLessonModal('${l.id}')" title="Fiyat ve Tarih Değiştir">
-            ✏️ Düzenle
-          </button>
-        </td>
-        <td style="text-align: center;">
-          <button class="btn-gcal-action" onclick="openGoogleCalendarForLesson('${l.id}')" title="Google Takvim'e Ekle">
-            📅 Takvim
-          </button>
-        </td>
-        <td style="font-size: 0.8rem; color: var(--slate-500);">${escapeHtml(l.note || '—')}</td>
-      </tr>
-    `;
-  }).join("");
+  period.payments.unshift(newPayment);
+  saveData();
+
+  // Formu temizle (tarih kalsın)
+  const amtInput = document.getElementById("quickPaymentAmountInput");
+  if (amtInput) amtInput.value = "";
+  const noteInput = document.getElementById("quickPaymentNoteInput");
+  if (noteInput) noteInput.value = "";
+  const sSelect = document.getElementById("quickPaymentStudentSelect");
+  if (sSelect) sSelect.value = "";
+
+  renderApp();
+  showToast(`Ödeme başarıyla kaydedildi: ${sName} - ${formatCurrency(amountVal)}`);
+}
+
+function openAddPaymentModal(studentId = "") {
+  const period = getActivePeriod();
+  if (!period) return;
+  ensurePaymentsArray(period);
+
+  const form = document.getElementById("formPayment");
+  if (form) form.reset();
+
+  document.getElementById("paymentEditId").value = "";
+  document.getElementById("modalPaymentTitle").textContent = "💳 Yeni Ödeme Girişi (Tarih ve Bilgi)";
+  
+  const btnDel = document.getElementById("btnDeletePayment");
+  if (btnDel) btnDel.style.display = "none";
+
+  const select = document.getElementById("paymentStudentSelect");
+  if (select) {
+    const totals = calculateTotals(period);
+    select.innerHTML = `<option value="">Öğrenci Seçiniz...</option>` + period.students.map(s => {
+      const st = totals.studentTotals[s.id] || { unpaid: 0 };
+      const debtText = st.unpaid > 0 ? ` (Kalan Borç: ${formatCurrency(st.unpaid)})` : ` (Borç Yok)`;
+      return `<option value="${s.id}" ${s.id === studentId ? 'selected' : ''}>${escapeHtml(s.name)}${debtText}</option>`;
+    }).join("");
+  }
+
+  const dateInput = document.getElementById("paymentDateInput");
+  if (dateInput) {
+    dateInput.value = new Date().toISOString().split("T")[0];
+  }
+
+  if (studentId && select) {
+    handleModalPaymentStudentChange(select);
+  } else {
+    const hint = document.getElementById("paymentStudentBalanceHint");
+    if (hint) hint.textContent = "";
+  }
+
+  openModal("modalPayment");
+}
+
+function openEditPaymentModal(paymentId) {
+  const period = getActivePeriod();
+  if (!period) return;
+  ensurePaymentsArray(period);
+
+  const payment = (period.payments || []).find(p => p.id === paymentId);
+  if (!payment) return;
+
+  document.getElementById("paymentEditId").value = payment.id;
+  document.getElementById("modalPaymentTitle").textContent = "✏️ Ödeme Kaydını Düzenle";
+
+  const btnDel = document.getElementById("btnDeletePayment");
+  if (btnDel) btnDel.style.display = "inline-flex";
+
+  const select = document.getElementById("paymentStudentSelect");
+  if (select) {
+    select.innerHTML = period.students.map(s => `
+      <option value="${s.id}" ${s.id === payment.studentId ? 'selected' : ''}>
+        ${escapeHtml(s.name)}
+      </option>
+    `).join("");
+  }
+
+  document.getElementById("paymentDateInput").value = payment.date;
+  document.getElementById("paymentAmountInput").value = payment.amount;
+  document.getElementById("paymentTypeSelect").value = payment.type || "Banka Havalesi / EFT";
+  document.getElementById("paymentNoteInput").value = payment.note || "";
+
+  const hint = document.getElementById("paymentStudentBalanceHint");
+  if (hint) hint.textContent = "";
+
+  openModal("modalPayment");
+}
+
+function handleSavePayment(event) {
+  event.preventDefault();
+  const period = getActivePeriod();
+  if (!period) return;
+  ensurePaymentsArray(period);
+
+  const editId = document.getElementById("paymentEditId").value;
+  const studentId = document.getElementById("paymentStudentSelect").value;
+  const dateVal = document.getElementById("paymentDateInput").value;
+  const amountVal = parseFloat(document.getElementById("paymentAmountInput").value) || 0;
+  const typeVal = document.getElementById("paymentTypeSelect").value || "Banka Havalesi / EFT";
+  const noteVal = document.getElementById("paymentNoteInput").value.trim();
+
+  if (!studentId || !dateVal || amountVal <= 0) {
+    alert("Lütfen öğrenci, tarih ve geçerli bir tutar giriniz.");
+    return;
+  }
+
+  const student = period.students.find(s => s.id === studentId);
+  const sName = student ? student.name : "Öğrenci";
+
+  if (editId) {
+    const existing = period.payments.find(p => p.id === editId);
+    if (existing) {
+      existing.studentId = studentId;
+      existing.date = dateVal;
+      existing.amount = amountVal;
+      existing.type = typeVal;
+      existing.note = noteVal;
+    }
+    showToast(`Ödeme güncellendi: ${sName} - ${formatCurrency(amountVal)}`);
+  } else {
+    period.payments.unshift({
+      id: "pay_" + Date.now(),
+      studentId: studentId,
+      date: dateVal,
+      amount: amountVal,
+      type: typeVal,
+      note: noteVal,
+      createdAt: Date.now()
+    });
+    showToast(`Yeni ödeme kaydedildi: ${sName} - ${formatCurrency(amountVal)}`);
+  }
+
+  saveData();
+  closeModal("modalPayment");
+  renderApp();
+}
+
+function handleDeletePayment(paymentId) {
+  const period = getActivePeriod();
+  if (!period || !period.payments) return;
+
+  const payment = period.payments.find(p => p.id === paymentId);
+  if (!payment) return;
+
+  const s = period.students.find(st => st.id === payment.studentId);
+  const sName = s ? s.name : "Öğrenci";
+
+  if (!confirm(`${sName} adına yapılan ${formatDateTurkish(payment.date)} tarihli ${formatCurrency(payment.amount)} ödeme kaydını silmek istediğinize emin misiniz?`)) {
+    return;
+  }
+
+  const idx = period.payments.findIndex(p => p.id === paymentId);
+  if (idx !== -1) {
+    period.payments.splice(idx, 1);
+  }
+
+  saveData();
+  renderApp();
+  showToast("Ödeme kaydı silindi.");
+}
+
+function handleDeleteCurrentPayment() {
+  const editId = document.getElementById("paymentEditId").value;
+  if (!editId) return;
+  closeModal("modalPayment");
+  handleDeletePayment(editId);
+}
+
+function handlePaymentStudentSelectChange(select) {
+  const period = getActivePeriod();
+  if (!period || !select.value) return;
+  const totals = calculateTotals(period);
+  const st = totals.studentTotals[select.value];
+  const s = period.students.find(x => x.id === select.value);
+
+  const amountInput = document.getElementById("quickPaymentAmountInput");
+  if (amountInput && (!amountInput.value || amountInput.value === "0")) {
+    if (st && st.unpaid > 0) {
+      amountInput.value = st.unpaid;
+    } else if (s && s.rate) {
+      amountInput.value = s.rate;
+    }
+  }
+}
+
+function handleModalPaymentStudentChange(select) {
+  const period = getActivePeriod();
+  if (!period || !select.value) return;
+  const totals = calculateTotals(period);
+  const st = totals.studentTotals[select.value];
+  const s = period.students.find(x => x.id === select.value);
+
+  const hint = document.getElementById("paymentStudentBalanceHint");
+  if (hint && st) {
+    if (st.unpaid > 0) {
+      hint.innerHTML = `⚠️ Bu öğrencinin toplam <strong>${formatCurrency(st.unpaid)}</strong> bekleyen borcu bulunuyor.`;
+      hint.style.color = "var(--danger)";
+    } else {
+      hint.innerHTML = `✓ Bu öğrencinin bekleyen borcu yok. (Ders başı ücret: ${formatCurrency(s?.rate || 0)})`;
+      hint.style.color = "var(--success)";
+    }
+  }
+
+  const amountInput = document.getElementById("paymentAmountInput");
+  if (amountInput && (!amountInput.value || amountInput.value === "0")) {
+    if (st && st.unpaid > 0) {
+      amountInput.value = st.unpaid;
+    } else if (s && s.rate) {
+      amountInput.value = s.rate;
+    }
+  }
+}
+
+function handlePaymentSearch(query) {
+  appState.paymentHistorySearch = query || "";
+  const period = getActivePeriod();
+  const totals = calculateTotals(period);
+  renderPayments(totals, period);
+}
+
+function handlePaymentHistoryStudentFilterChange(select) {
+  appState.paymentHistoryFilter = select.value || "all";
+  const period = getActivePeriod();
+  const totals = calculateTotals(period);
+  renderPayments(totals, period);
+}
+
+function exportPaymentsToCSV() {
+  const period = getActivePeriod();
+  if (!period || !period.payments || period.payments.length === 0) {
+    alert("Dışa aktarılacak ödeme kaydı bulunamadı.");
+    return;
+  }
+
+  let csv = "Tarih,Öğrenci Adı,Ödenen Tutar (₺),Ödeme Şekli,Ödeme Bilgisi / Dekont / Not\n";
+
+  const payments = [...period.payments];
+  payments.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+
+  payments.forEach(p => {
+    const s = period.students.find(st => st.id === p.studentId);
+    const sName = s ? s.name : p.studentId;
+    const cleanNote = (p.note || "").replace(/"/g, '""');
+    csv += `"${p.date}","${sName}","${p.amount}","${p.type || ''}","${cleanNote}"\n`;
+  });
+
+  const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `DersTakip_Odemeler_${period.id}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("Ödemeler listesi Excel/CSV olarak indirildi!");
+}
+
+function toggleLessonPaymentCardBody() {
+  const body = document.getElementById("lessonPaymentCardBody");
+  const icon = document.getElementById("lessonPaymentAccordionIcon");
+  if (!body) return;
+
+  if (body.style.display === "none") {
+    body.style.display = "block";
+    if (icon) icon.textContent = "▼";
+  } else {
+    body.style.display = "none";
+    if (icon) icon.textContent = "▶";
+  }
 }
 
 function toggleLessonPayment(lessonId) {
   const period = getActivePeriod();
   if (!period || !period.lessons) return;
+  ensurePaymentsArray(period);
 
   const lesson = period.lessons.find(l => l.id === lessonId);
   if (!lesson) return;
@@ -989,9 +1494,26 @@ function toggleLessonPayment(lessonId) {
   lesson.isPaid = !lesson.isPaid;
   if (lesson.isPaid) {
     lesson.paidDate = new Date().toISOString().split("T")[0];
+    const exists = period.payments.some(p => p.lessonId === lesson.id);
+    if (!exists) {
+      period.payments.unshift({
+        id: "pay_" + lesson.id,
+        studentId: lesson.studentId,
+        date: lesson.paidDate,
+        amount: parseFloat(lesson.rate) || 0,
+        type: "Banka Havalesi / EFT",
+        note: `Ders ödemesi (${formatDateTurkish(lesson.date)})`,
+        lessonId: lesson.id,
+        createdAt: Date.now()
+      });
+    }
     showToast(`Ders ücreti ödendi olarak işaretlendi (${formatCurrency(lesson.rate)})`);
   } else {
     lesson.paidDate = "";
+    const pIdx = period.payments.findIndex(p => p.lessonId === lesson.id);
+    if (pIdx !== -1) {
+      period.payments.splice(pIdx, 1);
+    }
     showToast(`Ders ücreti 'Yatırılmadı / Bekliyor' olarak işaretlendi`);
   }
 
@@ -1504,6 +2026,21 @@ function handleSaveLesson(event) {
   };
   period.lessons.push(newLesson);
 
+  // 1.1 Eğer ders ödendi olarak girildiyse ödemeler listesine de ekle
+  if (isPaid) {
+    ensurePaymentsArray(period);
+    period.payments.unshift({
+      id: "pay_" + newLesson.id,
+      studentId: studentId,
+      date: dateVal,
+      amount: rateVal,
+      type: "Banka Havalesi / EFT",
+      note: noteVal ? `Ders ödemesi (${noteVal})` : "Ders ödemesi",
+      lessonId: newLesson.id,
+      createdAt: Date.now()
+    });
+  }
+
   // 2. lessonDates listesine ekle
   if (!period.lessonDates) period.lessonDates = {};
   if (!period.lessonDates[studentId]) period.lessonDates[studentId] = [];
@@ -1661,7 +2198,7 @@ function viewStudentDetails(studentId) {
       </button>
     </div>
 
-    <div style="max-height: 250px; overflow-y: auto; border: 1px solid var(--slate-200); border-radius: 8px;">
+    <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--slate-200); border-radius: 8px; margin-bottom: 1.25rem;">
       <table class="data-table" style="font-size: 0.825rem;">
         <thead>
           <tr>
@@ -1697,6 +2234,50 @@ function viewStudentDetails(studentId) {
               </td>
             </tr>
           `).join("")}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ÖĞRENCİNİN ALINAN ÖDEMELER GEÇMİŞİ -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+      <h4 style="font-size: 0.95rem; font-weight: 700;">💳 Alınan Ödemeler (${((period.payments || []).filter(p => p.studentId === studentId)).length} Ödeme)</h4>
+      <button class="btn btn-success" style="padding: 3px 10px; font-size: 0.8rem;" onclick="closeModal('modalStudentDetails'); openAddPaymentModal('${s.id}')">
+        💳 Bu Öğrenciye Ödeme Gir
+      </button>
+    </div>
+
+    <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--slate-200); border-radius: 8px;">
+      <table class="data-table" style="font-size: 0.825rem;">
+        <thead>
+          <tr>
+            <th>Ödeme Tarihi</th>
+            <th style="text-align: right;">Ödenen Tutar</th>
+            <th style="text-align: center;">Ödeme Şekli</th>
+            <th>Ödeme Bilgisi / Not</th>
+            <th style="text-align: center;">İşlem</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${(() => {
+            const studentPayments = (period.payments || []).filter(p => p.studentId === studentId);
+            studentPayments.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+            if (studentPayments.length === 0) {
+              return '<tr><td colspan="5" style="text-align:center; padding: 1rem; color: var(--slate-400);">Kayıtlı ödeme bulunamadı.</td></tr>';
+            }
+            return studentPayments.map(p => `
+              <tr>
+                <td style="font-weight: 600;">📅 ${formatDateTurkish(p.date)}</td>
+                <td class="tabular-nums" style="text-align: right; font-weight: 700; color: var(--success);">+${formatCurrency(p.amount)}</td>
+                <td style="text-align: center;"><span class="payment-type-badge">${escapeHtml(p.type || 'Banka Havalesi')}</span></td>
+                <td style="color: var(--slate-600);">${escapeHtml(p.note || '—')}</td>
+                <td style="text-align: center;">
+                  <button class="btn-action-icon" onclick="closeModal('modalStudentDetails'); openEditPaymentModal('${p.id}');" title="Ödemeyi Düzenle">
+                    ✏️
+                  </button>
+                </td>
+              </tr>
+            `).join("");
+          })()}
         </tbody>
       </table>
     </div>
@@ -1848,7 +2429,10 @@ function importJSONBackup(event) {
       if (parsed && parsed.periods && Array.isArray(parsed.periods)) {
         appState.data = parsed;
         appState.activePeriodId = parsed.activePeriodId || parsed.periods[0].id;
-        appState.data.periods.forEach(p => ensureLessonsArray(p));
+        appState.data.periods.forEach(p => {
+          ensureLessonsArray(p);
+          ensurePaymentsArray(p);
+        });
         saveData();
         populatePeriodSelect();
         renderApp();

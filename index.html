@@ -51,6 +51,10 @@
           <span>➕</span> Ders Kaydet
         </button>
 
+        <button class="btn btn-success" onclick="openAddPaymentModal()" title="Yeni Ödeme Girişi Yap">
+          <span>💳</span> Ödeme Gir
+        </button>
+
         <button class="btn btn-secondary" onclick="openAddStudentModal()">
           <span>👤</span> Yeni Öğrenci Kabulü
         </button>
@@ -85,7 +89,7 @@
         <span>📊</span> Genel Bakış
       </button>
       <button class="nav-tab" data-tab="payments">
-        <span>💳</span> Ödeme & Tahsilat Takibi
+        <span>💳</span> Ödemeler
       </button>
       <button class="nav-tab" data-tab="matrix">
         <span>📈</span> Aylık Ders Sayıları Tablosu
@@ -214,17 +218,124 @@
       </div>
     </div>
 
-    <!-- 2. SEKME: ÖDEME & TAHSİLAT TAKİBİ (Ders Parasını Yatırdı mı Yatıramadı mı?) -->
+    <!-- 2. SEKME: ÖDEMELER (Tarih ve Ödeme Bilgisi Girişi & Tahsilat Yönetimi) -->
     <div id="tab-payments" class="tab-pane">
       
-      <!-- Öğrenci Tahsilat Özeti -->
+      <!-- HIZLI ÖDEME GİRİŞİ KARTI (Tarih ve Ödeme Bilgisi Girme) -->
+      <div class="payment-entry-card">
+        <div class="payment-entry-header">
+          <div>
+            <div class="payment-entry-title">
+              <span>💳</span> Hızlı Ödeme Girişi (Tarih ve Ödeme Bilgisi)
+            </div>
+            <div style="font-size: 0.8rem; color: var(--slate-500); margin-top: 2px;">
+              Öğrencinin yatırdığı parayı tarih, tutar, ödeme yöntemi ve açıklama/dekont bilgisiyle hemen sisteme kaydedin
+            </div>
+          </div>
+          <button type="button" class="btn btn-secondary" onclick="openAddPaymentModal()" style="font-size: 0.8rem; padding: 4px 10px;">
+            <span>↗️</span> Geniş Pencerede Aç
+          </button>
+        </div>
+        <div class="payment-entry-body">
+          <form id="formQuickPayment" onsubmit="handleQuickPaymentSubmit(event)">
+            <div class="payment-form-grid">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 700; color: var(--slate-800);">📅 Ödeme Tarihi *</label>
+                <input type="date" id="quickPaymentDateInput" class="form-control" required>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 700; color: var(--slate-800);">👤 Öğrenci Seçiniz *</label>
+                <select id="quickPaymentStudentSelect" class="form-control" required onchange="handlePaymentStudentSelectChange(this)">
+                  <option value="">Öğrenci Seçiniz...</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 700; color: var(--slate-800);">💰 Ödenen Tutar (₺) *</label>
+                <input type="number" id="quickPaymentAmountInput" class="form-control" placeholder="Örn: 3500" required min="1">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 700; color: var(--slate-800);">💳 Ödeme Şekli</label>
+                <select id="quickPaymentTypeSelect" class="form-control">
+                  <option value="Banka Havalesi / EFT" selected>🏦 Banka Havalesi / EFT</option>
+                  <option value="FAST">⚡ FAST</option>
+                  <option value="Nakit / Elden">💵 Nakit / Elden</option>
+                  <option value="Kredi Kartı">💳 Kredi Kartı</option>
+                  <option value="Diğer">📝 Diğer</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
+                <label class="form-label" style="font-weight: 700; color: var(--slate-800);">📝 Ödeme Bilgisi / Dekont / Not</label>
+                <input type="text" id="quickPaymentNoteInput" class="form-control" placeholder="Örn: Garanti BBVA Dekont no: 4891, Ekim ayı 4 ders, Anne hesabı">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <button type="submit" class="btn btn-success" style="width: 100%; height: 38px; font-size: 0.9rem;">
+                  <span>💾</span> Ödemeyi Kaydet
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- KAYITLI ÖDEMELER LİSTESİ (TARİH VE ÖDEME BİLGİSİ DÖKÜMÜ) -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <div>
+            <div class="card-title">📋 Kayıtlı Ödemeler Listesi (Tarih & Ödeme Bilgisi Geçmişi)</div>
+            <div class="card-subtitle">Sisteme girilmiş tüm tahsilatlar, ödeme tarihleri, dekont bilgileri ve tutarları</div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="openAddPaymentModal()">
+              <span>➕</span> Yeni Ödeme Gir
+            </button>
+            <button class="btn btn-secondary" onclick="exportPaymentsToCSV()" title="Ödeme geçmişini Excel / CSV olarak indir">
+              <span>📊</span> Ödemeleri Excel İndir
+            </button>
+          </div>
+        </div>
+
+        <!-- Ödemeler Filtre Çubuğu -->
+        <div class="payment-search-bar">
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex: 1; min-width: 240px;">
+            <select id="filterPaymentsStudentSelect" class="select-period" style="font-size: 0.85rem;" onchange="handlePaymentHistoryStudentFilterChange(this)">
+              <option value="all">Tüm Öğrencilerin Ödemeleri</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex: 1; max-width: 320px;">
+            <input type="text" id="searchPaymentInput" class="form-control" placeholder="🔍 Ödeme bilgisi, dekont veya not ara..." oninput="handlePaymentSearch(this.value)" style="font-size: 0.85rem; padding: 0.45rem 0.75rem;">
+          </div>
+        </div>
+
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Ödeme Tarihi</th>
+                <th>Öğrenci Adı</th>
+                <th style="text-align: right;">Ödenen Tutar</th>
+                <th style="text-align: center;">Ödeme Şekli</th>
+                <th>Ödeme Bilgisi / Dekont / Not</th>
+                <th style="text-align: center; width: 120px;">İşlem</th>
+              </tr>
+            </thead>
+            <tbody id="paymentsListTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ÖĞRENCİ BAKİYE VE TAHSİLAT DURUMU TABLOSU -->
       <div class="card" style="margin-bottom: 1.5rem;">
         <div class="card-header">
           <div>
             <div class="card-title">💳 Öğrenci Bakiye ve Ödeme Durumu Tablosu</div>
-            <div class="card-subtitle">Her öğrencinin belirlenen ders ücreti, yapılan toplam ders, yatırdığı para ve kalan borcu</div>
+            <div class="card-subtitle">Her öğrencinin yapılan toplam dersi, hak edilen tutar, yatırılan ödemeler ve kalan borç</div>
           </div>
-          <button class="btn btn-primary" onclick="openAddLessonModal()">➕ Yeni Ders Kaydet</button>
         </div>
         <div class="data-table-container">
           <table class="data-table">
@@ -245,53 +356,60 @@
         </div>
       </div>
 
-      <!-- Ders Bazlı Ödeme Kontrol Listesi -->
+      <!-- DERS BAZLI ÖDEME KONTROL LİSTESİ -->
       <div class="card">
-        <div class="card-header">
+        <div class="card-header" style="cursor: pointer;" onclick="toggleLessonPaymentCardBody()">
           <div>
-            <div class="card-title">🔍 Yapılan Her Ders İçin Ödeme Kontrolü</div>
-            <div class="card-subtitle">Ders parasını yatırıp yatırmadığını kontrol edin, tek tıkla durumu değiştirin</div>
+            <div class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+              <span id="lessonPaymentAccordionIcon">▼</span> Yapılan Her Ders İçin Ödeme Kontrolü (Ders Dökümü)
+            </div>
+            <div class="card-subtitle">İşlenen derslerin tek tek ödenip ödenmediğini kontrol edin</div>
           </div>
+          <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 10px;" onclick="event.stopPropagation(); toggleLessonPaymentCardBody()">
+            <span id="lessonPaymentAccordionText">Göster / Gizle</span>
+          </button>
         </div>
 
-        <!-- Filtreler -->
-        <div class="filter-bar">
-          <div class="filter-pills">
-            <button class="filter-pill payment-filter-btn active" data-filter="all" onclick="setPaymentFilter('all')">
-              Tüm Dersler
-            </button>
-            <button class="filter-pill payment-filter-btn" data-filter="unpaid" onclick="setPaymentFilter('unpaid')">
-              🔴 Yatırılmayanlar (Bekleyenler)
-            </button>
-            <button class="filter-pill payment-filter-btn" data-filter="paid" onclick="setPaymentFilter('paid')">
-              🟢 Yatırılanlar (Ödenenler)
-            </button>
+        <div id="lessonPaymentCardBody">
+          <!-- Filtreler -->
+          <div class="filter-bar">
+            <div class="filter-pills">
+              <button class="filter-pill payment-filter-btn active" data-filter="all" onclick="setPaymentFilter('all')">
+                Tüm Dersler
+              </button>
+              <button class="filter-pill payment-filter-btn" data-filter="unpaid" onclick="setPaymentFilter('unpaid')">
+                🔴 Yatırılmayanlar (Bekleyenler)
+              </button>
+              <button class="filter-pill payment-filter-btn" data-filter="paid" onclick="setPaymentFilter('paid')">
+                🟢 Yatırılanlar (Ödenenler)
+              </button>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <select id="filterPaymentStudentSelect" class="select-period" style="font-size: 0.85rem;" onchange="handlePaymentStudentFilterChange(this)">
+                <option value="all">Tüm Öğrenciler</option>
+              </select>
+            </div>
           </div>
 
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <select id="filterPaymentStudentSelect" class="select-period" style="font-size: 0.85rem;" onchange="handlePaymentStudentFilterChange(this)">
-              <option value="all">Tüm Öğrenciler</option>
-            </select>
+          <div class="data-table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Ders Tarihi</th>
+                  <th>Öğrenci Adı</th>
+                  <th>Ay</th>
+                  <th style="text-align: right;">Ders Ücreti</th>
+                  <th style="text-align: center;">Parayı Yatırdı mı? (Tıkla & Değiştir)</th>
+                  <th style="text-align: center;">Düzenle</th>
+                  <th style="text-align: center;">Google Takvim</th>
+                  <th>Açıklama / Not</th>
+                </tr>
+              </thead>
+              <tbody id="lessonsPaymentTableBody"></tbody>
+            </table>
           </div>
-        </div>
-
-        <div class="data-table-container">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Ders Tarihi</th>
-                <th>Öğrenci Adı</th>
-                <th>Ay</th>
-                <th style="text-align: right;">Ders Ücreti</th>
-                <th style="text-align: center;">Parayı Yatırdı mı? (Tıkla & Değiştir)</th>
-                <th style="text-align: center;">Düzenle</th>
-                <th style="text-align: center;">Google Takvim</th>
-                <th>Açıklama / Not</th>
-              </tr>
-            </thead>
-            <tbody id="lessonsPaymentTableBody"></tbody>
-          </table>
         </div>
       </div>
 
@@ -466,6 +584,59 @@
     </div>
 
   </main>
+
+  <!-- MODAL: YENİ ÖDEME GİRİŞİ / DÜZENLEME (TARİH VE ÖDEME BİLGİSİ) -->
+  <div id="modalPayment" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalPaymentTitle" class="modal-title">💳 Yeni Ödeme Girişi</h3>
+        <button class="modal-close" onclick="closeModal('modalPayment')">&times;</button>
+      </div>
+      <form id="formPayment" onsubmit="handleSavePayment(event)">
+        <input type="hidden" id="paymentEditId">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Öğrenci Seçiniz *</label>
+            <select id="paymentStudentSelect" class="form-control" required onchange="handleModalPaymentStudentChange(this)"></select>
+            <div id="paymentStudentBalanceHint" style="font-size: 0.8rem; color: var(--slate-500); margin-top: 4px;"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Ödeme Tarihi *</label>
+              <input type="date" id="paymentDateInput" class="form-control" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Ödenen Tutar (₺) *</label>
+              <input type="number" id="paymentAmountInput" class="form-control" placeholder="Örn: 3500" required min="1">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ödeme Şekli</label>
+            <select id="paymentTypeSelect" class="form-control">
+              <option value="Banka Havalesi / EFT" selected>🏦 Banka Havalesi / EFT</option>
+              <option value="FAST">⚡ FAST</option>
+              <option value="Nakit / Elden">💵 Nakit / Elden</option>
+              <option value="Kredi Kartı">💳 Kredi Kartı</option>
+              <option value="Diğer">📝 Diğer</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ödeme Bilgisi / Dekont / Not</label>
+            <input type="text" id="paymentNoteInput" class="form-control" placeholder="Örn: Garanti BBVA Dekont no: 4891, Ekim ayı 4 ders, Anne hesabı">
+          </div>
+        </div>
+        <div class="modal-footer" style="justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+          <button type="button" id="btnDeletePayment" class="btn btn-danger" style="display: none;" onclick="handleDeleteCurrentPayment()">
+            🗑️ Ödemeyi Sil
+          </button>
+          <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('modalPayment')">İptal</button>
+            <button type="submit" class="btn btn-primary">Ödemeyi Kaydet</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- MODAL: HIZLI DERS KAYDET -->
   <div id="modalAddLesson" class="modal-overlay">
@@ -894,7 +1065,7 @@
     </button>
     <button class="mobile-nav-btn" data-tab="tab-payments" onclick="switchTab('payments')">
       <span class="m-icon">💳</span>
-      <span class="m-label">Ödeme</span>
+      <span class="m-label">Ödemeler</span>
     </button>
     <button class="mobile-nav-btn mobile-nav-fab" onclick="openAddLessonModal()" title="Yeni Ders Ekle">
       <span class="m-icon">➕</span>

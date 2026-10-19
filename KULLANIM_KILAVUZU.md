@@ -59,11 +59,20 @@ Programa Google Takvim için **3 farklı ve çok pratik entegrasyon** eklenmişt
   - **"Ders Parası Yatırıldı mı?"** seçeneğinden `🟢 Ödendi` veya `🔴 Yatırılmadı (Bekliyor)` seçilir.
   - Ders anında ilgili ayın ders sayısına (+1) ve ödeme tablosuna yansır.
 
-### 3️⃣ Ders Parasını Yatırıp Yatırmadığını Kontrol Etme (💳 Ödeme & Tahsilat Takibi)
-- **`Ödeme & Tahsilat Takibi`** sekmesinde:
-  - 💰 **Toplam Hak Ediş**, 🟢 **Yatan Para** ve 🔴 **Yatırılmayan (Bekleyen Borç)** kasanızda net olarak görünür.
-  - Her öğrencinin toplam dersi, yatırdığı para ve kalan borcu listelenir.
-  - Tek bir tıkla **`🔴 Yatırılmadı`** butonuna basarak dersi **`🟢 Ödendi`** yapabilirsiniz.
+### 3️⃣ Ödemeler Sekmesi & Tahsilat Girişi (💳 Ödemeler)
+- **`💳 Ödemeler`** sekmesinde:
+  - **Tarih ve Ödeme Bilgisi Girişi:**
+    - Üstteki **Hızlı Ödeme Girişi** formu veya üst bardaki **`💳 Ödeme Gir`** butonu ile:
+      - **Ödeme Tarihi** (YYYY-AA-GG veya takvim seçici)
+      - **Öğrenci Seçimi** (öğrencinin kalan borcu otomatik görünür)
+      - **Ödenen Tutar (₺)** (kalan borç veya ders ücreti otomatik önerilir, serbestçe değiştirilebilir)
+      - **Ödeme Şekli** (Banka Havalesi / EFT, FAST, Nakit / Elden, Kredi Kartı, Diğer)
+      - **Ödeme Bilgisi / Dekont / Not** (Örn: "Garanti BBVA dekont no: 4891", "Ekim ayı 4 ders peşin", "Anne havalesi")
+    - **`💾 Ödemeyi Kaydet`** butonuna basarak anında tahsilat geçmişine işleyebilirsiniz.
+  - 📋 **Kayıtlı Ödemeler Listesi:** Yapılan tüm ödemelerin tarih, tutar, ödeme şekli ve dekont/açıklama bilgileri döküm olarak listelenir. Yanındaki **`✏️ Düzenle`** ve **`🗑️ Sil`** butonlarıyla geçmiş ödemeler istenildiği zaman güncellenebilir.
+  - 📊 **Öğrenci Bakiye Durumu:** Yapılan toplam ders, toplam ders ücreti, alınan ödemeler toplamı ve kalan borç net olarak hesaplanır. Tek tıkla **`💳 Ödeme Gir`** ile o öğrenciye özel ödeme eklenebilir.
+  - 📥 **Excel İndir:** **`Ödemeleri Excel İndir`** butonu ile tüm ödeme dökümü tek tıkla Excel/CSV olarak bilgisayara aktarılabilir.
+  - 🔍 **Ders Bazlı Ödeme Kontrolü:** Derslerin tek tek ödenip ödenmediğini incelemek için açılır listeden her dersin ödendi durumu kontrol edilebilir.
 
 ### 4️⃣ Aylık Kaç Ders Yapıldığının Tablolanması (📈 Aylık Ders Sayıları Tablosu)
 - Ağustos'tan Haziran'a kadar her ay hangi öğrenciyle kaç ders yapıldığı (ve ay toplamları) matris halinde sunulur.
