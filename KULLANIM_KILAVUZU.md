@@ -59,10 +59,12 @@ Programa Google Takvim için **3 farklı ve çok pratik entegrasyon** eklenmişt
   - **"Ders Parası Yatırıldı mı?"** seçeneğinden `🟢 Ödendi` veya `🔴 Yatırılmadı (Bekliyor)` seçilir.
   - Ders anında ilgili ayın ders sayısına (+1) ve ödeme tablosuna yansır.
 
-### 3️⃣ Kendi Ödemeleriniz & Gider Takibi (💳 Ödemeler)
-- **`💳 Ödemeler`** sekmesi **tamamen sizin kendi kişisel ödemelerinize** ayrılmıştır (kredi kartları, ev kirası, elektrik/gaz/su faturaları, kredi taksitleri, bağkur primi vb.):
+### 3️⃣ Kendi Ödemeleriniz & Gider Takibi (💳 Ayrı Pencere ve Sayfa: odemeler.html)
+- Kişisel ödemeleriniz (kredi kartları, ev kirası, elektrik/gaz/su faturaları, kredi taksitleri, bağkur primi vb.) **ders takip sayfasından tamamen ayrılmış ve `odemeler.html` adresinde bağımsız bir pencereye toplanmıştır**:
+  - **Ayrı Pencerede Açma:** Ana ders sayfasındaki üst barda yer alan **`💳 Kendi Ödemelerim (Ayrı Pencere) ↗️`** butonuna basarak veya navigasyondaki sekmeye tıklayarak ödemelerinizi bağımsız bir sekmede/pencerede açabilirsiniz.
+  - **Doğrudan Erişim:** Tarayıcınızda veya telefonunuzda doğrudan `https://gurakarcem.github.io/ders-takip/odemeler.html` adresini yer imlerine ekleyebilir veya ana ekrana kısayol olarak kaydedebilirsiniz.
   - **Tarih ve Ödeme Bilgisi Girişi:**
-    - Üstteki **Hızlı Ödeme Girişi** formu veya üst bardaki **`💳 Ödeme Ekle`** butonu ile:
+    - Üstteki **Hızlı Ödeme Girişi** formu veya **`➕ Yeni Ödeme`** butonu ile:
       - **📅 Ödeme Tarihi** (Ödeme veya son ödeme vadesi)
       - **📝 Ödeme Bilgisi** (Örn: "Garanti BBVA Kredi Kartı", "Ev Kirası", "İgdaş Doğalgaz Faturası", "Turkcell Telefon", "Bağkur Primi")
       - **💰 Tutar (₺)**

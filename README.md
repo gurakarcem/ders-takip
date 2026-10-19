@@ -4,7 +4,10 @@
 
 ## 🌐 Online Erişim (Her Yerden Açın!)
 
-**👉 https://gurakarcem.github.io/ders-takip/**
+- 🎓 **Özel Ders Takip ve Öğrenci Paneli:**  
+  👉 **https://gurakarcem.github.io/ders-takip/**
+- 💳 **Kişisel Ödemelerim ve Gider Defteri (Ayrı Pencere & Sayfa):**  
+  👉 **https://gurakarcem.github.io/ders-takip/odemeler.html**
 
 ## 📱 Samsung Galaxy S25 Edge'e Uygulama Olarak Kurma
 

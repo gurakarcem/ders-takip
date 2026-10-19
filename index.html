@@ -51,9 +51,9 @@
           <span>➕</span> Ders Kaydet
         </button>
 
-        <button class="btn btn-success" onclick="openAddMyPaymentModal()" title="Yeni Ödeme Girişi Yap">
-          <span>💳</span> Ödeme Ekle
-        </button>
+        <a href="odemeler.html" target="_blank" class="btn" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; border: 1px solid #334155; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: var(--shadow-sm);" title="Kişisel gider ve ödeme defterinizi ayrı bir pencere ve sayfada açın">
+          <span>💳</span> Kendi Ödemelerim (Ayrı Pencere) ↗️
+        </a>
 
         <button class="btn btn-secondary" onclick="openAddStudentModal()">
           <span>👤</span> Yeni Öğrenci Kabulü
@@ -88,9 +88,9 @@
       <button class="nav-tab active" data-tab="dashboard">
         <span>📊</span> Genel Bakış
       </button>
-      <button class="nav-tab" data-tab="payments">
-        <span>💳</span> Ödemeler
-      </button>
+      <a href="odemeler.html" target="_blank" class="nav-tab" style="color: #4f46e5; font-weight: 700; text-decoration: none;" title="Kişisel ödemeler ve gider defterinizi ayrı pencerede açın">
+        <span>💳</span> Kendi Ödemelerim (Ayrı Sayfa) ↗️
+      </a>
       <button class="nav-tab" data-tab="student-payments">
         <span>💰</span> Öğrenci Tahsilatı
       </button>
@@ -236,14 +236,17 @@
             </div>
           </div>
           <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <a href="odemeler.html" target="_blank" class="btn" style="font-weight: 800; background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); color: #ffffff; border: none; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4); text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;" title="Kendi ödemelerinizi ayrı pencerede ve sayfada açın">
+              <span>🚀</span> Ayrı Pencerede Aç ↗️
+            </a>
             <button type="button" class="btn" onclick="openExpenseSummaryModal()" style="font-weight: 700; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #ffffff; border: none; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);">
               <span>📊</span> Gider Toplam Bilgi Penceresi
             </button>
             <button type="button" class="btn btn-success" onclick="openAddMyPaymentModal()" style="font-weight: 700;">
-              <span>➕</span> Yeni Ödeme Ekle
+              <span>➕</span> Yeni Ödeme
             </button>
             <button type="button" class="btn btn-secondary" onclick="exportMyPaymentsToCSV()" style="background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2);">
-              <span>📊</span> Excel / CSV İndir
+              <span>📊</span> Excel İndir
             </button>
           </div>
         </div>
@@ -1484,10 +1487,10 @@
       <span class="m-icon">📊</span>
       <span class="m-label">Özet</span>
     </button>
-    <button class="mobile-nav-btn" data-tab="tab-payments" onclick="switchTab('payments')">
+    <a href="odemeler.html" target="_blank" class="mobile-nav-btn" style="text-decoration: none; color: inherit;">
       <span class="m-icon">💳</span>
-      <span class="m-label">Ödemeler</span>
-    </button>
+      <span class="m-label">Ödemelerim ↗️</span>
+    </a>
     <button class="mobile-nav-btn mobile-nav-fab" onclick="openAddLessonModal()" title="Yeni Ders Ekle">
       <span class="m-icon">➕</span>
     </button>
