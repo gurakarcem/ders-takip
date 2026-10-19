@@ -478,7 +478,13 @@ function renderKPIs(totals, period) {
   if (elMyExp) elMyExp.textContent = formatCurrency(myTotals.totalAmount);
 
   const elMyExpSub = document.getElementById("kpiMyTotalExpensesSub");
-  if (elMyExpSub) elMyExpSub.textContent = `${myTotals.totalCount} adet gider kaydı ↗️`;
+  if (elMyExpSub) {
+    if (myTotals.unpaidAmount > 0) {
+      elMyExpSub.textContent = `${formatCurrency(myTotals.unpaidAmount)} bekliyor (${myTotals.totalCount} kayıt) ↗️`;
+    } else {
+      elMyExpSub.textContent = `Tümü ödendi (${myTotals.totalCount} kayıt) ↗️`;
+    }
+  }
 
   const elMyPending = document.getElementById("kpiMyPendingExpenses");
   if (elMyPending) elMyPending.textContent = formatCurrency(myTotals.unpaidAmount);

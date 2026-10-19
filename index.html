@@ -162,41 +162,14 @@
         <div class="kpi-icon-box kpi-purple">👥</div>
       </div>
 
-      <!-- KİŞİSEL ÖDEMELERİM KARTLARI (AKTİF ÖĞRENCİ'NİN YANINDA) -->
-      <div class="kpi-card" style="border-left: 4px solid var(--primary); cursor: pointer;" onclick="window.open('odemeler.html', '_blank')" title="Kişisel ödemelerim sayfasını ayrı pencerede aç">
+      <!-- KİŞİSEL ÖDEMELERİM (ÇİZİLEN KUTU: AKTİF ÖĞRENCİ'NİN HEMEN YANINDA) -->
+      <div class="kpi-card" style="cursor: pointer;" onclick="window.open('odemeler.html', '_blank')" title="Kişisel ödemelerim ve gider defterini ayrı pencerede aç">
         <div>
-          <div class="kpi-label" style="color: var(--primary); font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
-            <span>Kişisel Ödemelerim</span>
-            <span style="font-size: 0.7rem; background: #eef2ff; color: #4338ca; padding: 2px 6px; border-radius: 4px;">Ayrı Pencere ↗️</span>
-          </div>
+          <div class="kpi-label">Kişisel Ödemelerim</div>
           <div id="kpiMyTotalExpenses" class="kpi-value tabular-nums" style="color: var(--primary);">0 ₺</div>
           <div id="kpiMyTotalExpensesSub" class="kpi-subtext">Kart, kira, fatura ve taksitler ↗️</div>
         </div>
         <div class="kpi-icon-box kpi-indigo">💳</div>
-      </div>
-
-      <div class="kpi-card" style="border-left: 4px solid var(--danger); cursor: pointer;" onclick="window.open('odemeler.html', '_blank')" title="Bekleyen kişisel ödemeleri ayrı pencerede incele">
-        <div>
-          <div class="kpi-label" style="color: var(--danger); font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
-            <span>Kişisel Bekleyen Borç</span>
-            <span style="font-size: 0.7rem; background: #fff1f2; color: #e11d48; padding: 2px 6px; border-radius: 4px;">Bekleyen ⏳</span>
-          </div>
-          <div id="kpiMyPendingExpenses" class="kpi-value tabular-nums" style="color: var(--danger);">0 ₺</div>
-          <div id="kpiMyPendingExpensesSub" class="kpi-subtext">0 adet ödeme bekliyor ↗️</div>
-        </div>
-        <div class="kpi-icon-box kpi-rose">⏳</div>
-      </div>
-
-      <div class="kpi-card" style="border-left: 4px solid #0284c7; cursor: pointer;" onclick="openExpenseSummaryModal()" title="Gelir - Gider dengesini ve aylık raporu gör">
-        <div>
-          <div class="kpi-label" style="color: #0369a1; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
-            <span>Net Kasa Dengesi</span>
-            <span style="font-size: 0.7rem; background: #f0f9ff; color: #0284c7; padding: 2px 6px; border-radius: 4px;">Gelir - Gider 📊</span>
-          </div>
-          <div id="kpiMyNetBalance" class="kpi-value tabular-nums">0 ₺</div>
-          <div id="kpiMyNetBalanceSub" class="kpi-subtext">Ders Geliri vs Kişisel Gider ↗️</div>
-        </div>
-        <div class="kpi-icon-box kpi-purple">⚖️</div>
       </div>
     </section>
 
