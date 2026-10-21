@@ -9,7 +9,7 @@
   <!-- Modern Fontlar & Stiller -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 
   <!-- Chart.js Grafikler -->
@@ -157,38 +157,42 @@
     <!-- 1. ÜST BİLGİLENDİRME VE FİNANSAL KPI KARTLARI -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
       
-      <div class="kpi-card" style="border-left: 4px solid var(--danger); background: #ffffff;">
+      <div class="kpi-card kpi-card-clickable" style="border-left: 4px solid var(--danger); background: #ffffff;" onclick="openUpcomingDebtsModal()" title="Yaklaşan Ödeme Tarihlerine Göre Bilgilendirme ve Google Takvim Ekranını Aç">
         <div>
-          <div class="kpi-label" style="color: var(--danger); font-weight: 700;">🔴 Kalan Bekleyen Borç</div>
+          <div class="kpi-label" style="color: var(--danger); font-weight: 700;">🔴 Kalan Bekleyen Borç ↗️</div>
           <div id="kpiMyPendingAmount" class="kpi-value tabular-nums" style="color: var(--danger);">0 ₺</div>
           <div id="kpiMyPendingCount" class="kpi-subtext">0 adet ödeme bekliyor</div>
+          <div class="click-indicator" style="color: var(--danger);">📅 Takvim & Yaklaşanlar ↗️</div>
         </div>
         <div class="kpi-icon-box kpi-rose">⏳</div>
       </div>
 
-      <div class="kpi-card" style="border-left: 4px solid var(--success); background: #ffffff;">
+      <div class="kpi-card kpi-card-clickable" style="border-left: 4px solid var(--success); background: #ffffff;" onclick="openMonthlyPaidModal()" title="Bu Ay Ödenenleri ve Detayları Gör">
         <div>
-          <div class="kpi-label" style="color: var(--success); font-weight: 700;">🟢 Toplam Ödenen</div>
+          <div class="kpi-label" style="color: var(--success); font-weight: 700;">🟢 Toplam Ödenen ↗️</div>
           <div id="kpiMyPaidAmount" class="kpi-value tabular-nums" style="color: var(--success);">0 ₺</div>
           <div id="kpiMyPaidCount" class="kpi-subtext">0 adet ödendi</div>
+          <div class="click-indicator" style="color: var(--success);">🔍 O Ayki Ödenenler ↗️</div>
         </div>
         <div class="kpi-icon-box kpi-emerald">✓</div>
       </div>
 
-      <div class="kpi-card" style="border-left: 4px solid var(--primary); background: #ffffff; cursor: pointer;" onclick="openExpenseSummaryModal()" title="Gider Toplam Bilgi Penceresini Aç">
+      <div class="kpi-card kpi-card-clickable" style="border-left: 4px solid var(--primary); background: #ffffff;" onclick="openExpenseSummaryModal()" title="Gider Toplam Bilgi Penceresini Aç">
         <div>
           <div class="kpi-label" style="color: var(--primary); font-weight: 700;">📊 Toplam Planlanan ↗️</div>
           <div id="kpiMyTotalAmount" class="kpi-value tabular-nums">0 ₺</div>
           <div id="kpiMyTotalCount" class="kpi-subtext">0 adet toplam kayıt</div>
+          <div class="click-indicator" style="color: var(--primary);">📈 Yıllık Rapor ↗️</div>
         </div>
         <div class="kpi-icon-box kpi-indigo">💳</div>
       </div>
 
-      <div class="kpi-card" style="border-left: 4px solid #f59e0b; background: #ffffff;">
+      <div class="kpi-card kpi-card-clickable" style="border-left: 4px solid #f59e0b; background: #ffffff;" onclick="openUpcomingDebtsModal()" title="Yaklaşan Borçları İncele ve Google Takvime Ekle">
         <div>
-          <div class="kpi-label" style="color: #b45309; font-weight: 700;">⏰ Yaklaşan İlk Ödeme</div>
+          <div class="kpi-label" style="color: #b45309; font-weight: 700;">⏰ Yaklaşan İlk Ödeme ↗️</div>
           <div id="kpiMyUpcomingText" class="kpi-value" style="font-size: 1.05rem; line-height: 1.35; color: var(--slate-800);">Yok ✓</div>
           <div class="kpi-subtext">Vadesi en yakın bekleyen borç</div>
+          <div class="click-indicator" style="color: #b45309;">📅 Detayları İncele ↗️</div>
         </div>
         <div class="kpi-icon-box kpi-amber">📅</div>
       </div>
@@ -206,9 +210,6 @@
             Kredi kartı, fatura, ev kirası veya herhangi bir ödemeyi tarih ve tutarıyla hızlıca kaydedin
           </div>
         </div>
-        <button type="button" class="btn btn-secondary" onclick="openAddMyPaymentModal()" style="font-size: 0.8rem; padding: 4px 10px;">
-          <span>📝</span> Geniş Form
-        </button>
       </div>
       <div class="card-body" style="padding: 1.25rem;">
         <form id="formQuickMyPayment" onsubmit="handleQuickMyPaymentSubmit(event)">
@@ -283,6 +284,28 @@
       </div>
       <div style="padding: 1rem 1.25rem;">
         <div id="myPaymentMonthStrip" class="month-chips-container"></div>
+      </div>
+    </div>
+
+    <!-- 3.5. AY AY ÖDEDİKLERİMİZ VE BEKLEYEN BORÇLAR GRAFİĞİ -->
+    <div class="card" style="margin-bottom: 1.5rem; border: 1px solid var(--slate-200);">
+      <div class="card-header" style="background: #ffffff; border-bottom: 1px solid var(--slate-100); padding: 0.85rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <div class="card-title" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1rem;">
+            <span>📊</span> Ay Ay Ödediklerimiz (Ödenen Borçlar & Giderler Grafiği)
+          </div>
+          <div class="card-subtitle">
+            Ağustos - Haziran döneminde her ay fiilen ödediğiniz borç tutarları (yeşil) ve kalan bekleyen borçlar (kırmızı)
+          </div>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--slate-500); display: flex; align-items: center; gap: 6px;">
+          <span>💡 Grafikteki herhangi bir aya tıklayarak o ay ödenenleri anında listeleyebilirsiniz</span>
+        </div>
+      </div>
+      <div class="card-body" style="padding: 1.25rem;">
+        <div class="chart-wrapper" style="height: 270px; position: relative;">
+          <canvas id="chartMonthlyPaidExpenses"></canvas>
+        </div>
       </div>
     </div>
 
@@ -386,20 +409,22 @@
             <div class="kpi-icon-box kpi-indigo">💳</div>
           </div>
 
-          <div class="kpi-card" style="border-left: 4px solid var(--success); background: #f0fdf4; padding: 1rem;">
+          <div class="kpi-card kpi-card-clickable" style="border-left: 4px solid var(--success); background: #f0fdf4; padding: 1rem;" onclick="openMonthlyPaidModal()" title="O Ayki Ödenenleri Detaylı Gör">
             <div>
-              <div class="kpi-label" style="color: var(--success);">🟢 Toplam Ödenen</div>
+              <div class="kpi-label" style="color: var(--success);">🟢 Toplam Ödenen ↗️</div>
               <div id="modalExpPaidAmount" class="kpi-value tabular-nums" style="color: var(--success); font-size: 1.35rem;">0 ₺</div>
               <div id="modalExpPaidPercent" class="kpi-subtext">%0 tamamlandı</div>
+              <div class="click-indicator" style="color: var(--success);">🔍 O Ayki Ödenenler ↗️</div>
             </div>
             <div class="kpi-icon-box kpi-emerald">✓</div>
           </div>
 
-          <div class="kpi-card" style="border-left: 4px solid var(--danger); background: #fff1f2; padding: 1rem;">
+          <div class="kpi-card kpi-card-clickable" style="border-left: 4px solid var(--danger); background: #fff1f2; padding: 1rem;" onclick="openUpcomingDebtsModal()" title="Yaklaşan Ödeme Tarihleri ve Google Takvime Ekle">
             <div>
-              <div class="kpi-label" style="color: var(--danger);">🔴 Kalan Bekleyen Borç</div>
+              <div class="kpi-label" style="color: var(--danger);">🔴 Kalan Bekleyen Borç ↗️</div>
               <div id="modalExpUnpaidAmount" class="kpi-value tabular-nums" style="color: var(--danger); font-size: 1.35rem;">0 ₺</div>
               <div id="modalExpUnpaidCount" class="kpi-subtext">0 adet ödeme bekliyor</div>
+              <div class="click-indicator" style="color: var(--danger);">📅 Takvim & Yaklaşanlar ↗️</div>
             </div>
             <div class="kpi-icon-box kpi-rose">⏳</div>
           </div>
@@ -545,6 +570,185 @@
           </div>
         </div>
       </form>
+    </div>
+  <!-- MODAL: YAKLAŞAN ÖDEME TARİHLERİ VE BEKLEYEN BORÇLAR (GOOGLE TAKVİM ENTEGRASYONU) -->
+  <div id="modalUpcomingDebts" class="modal-overlay">
+    <div class="modal modal-xl">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); color: #ffffff;">
+        <div>
+          <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff;">
+            <span>⏰</span> Yaklaşan Ödeme Tarihleri ve Bekleyen Borçlar
+          </h3>
+          <div style="font-size: 0.8rem; color: #c7d2fe; margin-top: 3px;">
+            Vadesi yaklaşan veya günü geçmiş tüm bekleyen borçlarınız ve Google Takvim hatırlatıcıları
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modalUpcomingDebts')" style="color: #ffffff;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+        
+        <!-- Üst KPI Kartları -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.85rem; margin-bottom: 1.25rem;">
+          <div class="kpi-card" style="border-left: 4px solid var(--danger); background: #fff1f2; padding: 0.9rem;">
+            <div>
+              <div class="kpi-label" style="color: var(--danger);">🔴 Kalan Bekleyen Borç</div>
+              <div id="modalUpUnpaidAmount" class="kpi-value tabular-nums" style="color: var(--danger); font-size: 1.35rem;">0 ₺</div>
+              <div id="modalUpUnpaidCount" class="kpi-subtext">0 adet ödeme bekliyor</div>
+            </div>
+            <div class="kpi-icon-box kpi-rose">⏳</div>
+          </div>
+
+          <div class="kpi-card" style="border-left: 4px solid #dc2626; background: #fef2f2; padding: 0.9rem;">
+            <div>
+              <div class="kpi-label" style="color: #b91c1c;">⚠️ Günü Geçmiş / Vadesi Dolan</div>
+              <div id="modalUpOverdueAmount" class="kpi-value tabular-nums" style="color: #dc2626; font-size: 1.35rem;">0 ₺</div>
+              <div id="modalUpOverdueCount" class="kpi-subtext">0 adet geciken ödeme</div>
+            </div>
+            <div class="kpi-icon-box" style="background: #fee2e2; color: #dc2626;">🚨</div>
+          </div>
+
+          <div class="kpi-card" style="border-left: 4px solid #f59e0b; background: #fffbeb; padding: 0.9rem;">
+            <div>
+              <div class="kpi-label" style="color: #b45309;">⚡ Bu Hafta Yaklaşan (7 Gün)</div>
+              <div id="modalUpSoonAmount" class="kpi-value tabular-nums" style="color: #d97706; font-size: 1.35rem;">0 ₺</div>
+              <div id="modalUpSoonCount" class="kpi-subtext">0 adet yakın ödeme</div>
+            </div>
+            <div class="kpi-icon-box kpi-amber">⏰</div>
+          </div>
+
+          <div class="kpi-card" style="border-left: 4px solid #1a73e8; background: #f0f7ff; padding: 0.9rem;">
+            <div>
+              <div class="kpi-label" style="color: #1a73e8;">📅 Google Takvim</div>
+              <div style="font-size: 0.95rem; font-weight: 700; color: #1557b0; margin-top: 4px;">Tek Tıkla Entegre Et</div>
+              <div class="kpi-subtext">Hatırlatıcılar telefonunuza gelsin</div>
+            </div>
+            <div class="kpi-icon-box" style="background: #e8f0fe; color: #1a73e8;">🗓️</div>
+          </div>
+        </div>
+
+        <!-- Hızlı Aksiyon & Filtre Barı -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; background: #f8faff; padding: 0.85rem 1rem; border-radius: 10px; border: 1px solid var(--slate-200); margin-bottom: 1.25rem;">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: var(--slate-600); margin-right: 4px;">Filtrele:</span>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnFilterUpAll" onclick="filterUpcomingDebts('all')" style="padding: 4px 10px; font-size: 0.775rem; font-weight: 700;">Tümü</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnFilterUpOverdue" onclick="filterUpcomingDebts('overdue')" style="padding: 4px 10px; font-size: 0.775rem; font-weight: 700; color: #dc2626;">⚠️ Gecikenler</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnFilterUpSoon" onclick="filterUpcomingDebts('soon')" style="padding: 4px 10px; font-size: 0.775rem; font-weight: 700; color: #d97706;">⚡ Bu Hafta (7 Gün)</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnFilterUpMonth" onclick="filterUpcomingDebts('thisMonth')" style="padding: 4px 10px; font-size: 0.775rem; font-weight: 700;">🗓️ Bu Ay</button>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="exportUpcomingDebtsToICS()" style="background: #1a73e8; border-color: #1a73e8; font-weight: 700; font-size: 0.8rem; display: flex; align-items: center; gap: 6px;" title="Tüm yaklaşan borçları tek bir takvim dosyası (.ics) olarak indirip Google Takvim veya Apple Takviminize aktarın">
+              <span>📅</span> Tümünü Takvime Aktar (.ics İndir)
+            </button>
+          </div>
+        </div>
+
+        <!-- Yaklaşan Borçlar Listesi -->
+        <div id="modalUpcomingDebtsList" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 440px; overflow-y: auto; padding-right: 4px;">
+          <!-- Dinamik borç satırları -->
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+        <div style="font-size: 0.8rem; color: var(--slate-500); display: flex; align-items: center; gap: 6px;">
+          <span>💡 <strong>Google Takvim:</strong> "Google Takvime Ekle" butonuna bastığınızda Google Takvim etkinliği otomatik açılır.</span>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="closeModal('modalUpcomingDebts')">Tamam / Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: O AYKİ ÖDENENLER DETAY VE BİLGİLENDİRME EKRANI -->
+  <div id="modalMonthlyPaid" class="modal-overlay">
+    <div class="modal modal-xl">
+      <div class="modal-header" style="background: linear-gradient(135deg, #065f46 0%, #047857 100%); color: #ffffff;">
+        <div>
+          <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff;">
+            <span id="modalMonthlyPaidHeaderTitle">🟢 Ekim Ayında Ödenen Giderler ve Borçlar</span>
+          </h3>
+          <div style="font-size: 0.8rem; color: #a7f3d0; margin-top: 3px;">
+            Seçili ay içerisinde başarıyla ödenen tüm borç, taksit ve harcama kayıtları dökümü
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modalMonthlyPaid')" style="color: #ffffff;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+        
+        <!-- Ay Seçim Butonları Şeridi -->
+        <div style="margin-bottom: 1.25rem;">
+          <div style="font-size: 0.8rem; font-weight: 700; color: var(--slate-600); margin-bottom: 6px;">İncelemek İstediğiniz Ayı Seçin:</div>
+          <div id="modalMonthlyPaidChipStrip" style="display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 6px;">
+            <!-- Dinamik Ay Çipleri -->
+          </div>
+        </div>
+
+        <!-- O Ayki Özet KPI Kartları -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.85rem; margin-bottom: 1.25rem;">
+          <div class="kpi-card" style="border-left: 4px solid var(--success); background: #f0fdf4; padding: 0.9rem;">
+            <div>
+              <div class="kpi-label" style="color: var(--success);" id="modalMonthPaidCardLabel">🟢 Seçili Ay Ödenen Toplam</div>
+              <div id="modalMonthPaidAmount" class="kpi-value tabular-nums" style="color: var(--success); font-size: 1.4rem;">0 ₺</div>
+              <div id="modalMonthPaidCount" class="kpi-subtext">0 adet ödendi</div>
+            </div>
+            <div class="kpi-icon-box kpi-emerald">✓</div>
+          </div>
+
+          <div class="kpi-card" style="border-left: 4px solid var(--primary); background: #f8faff; padding: 0.9rem;">
+            <div>
+              <div class="kpi-label" style="color: var(--primary);">📊 O Ayki Toplam Gider</div>
+              <div id="modalMonthTotalExpenseAmount" class="kpi-value tabular-nums" style="color: var(--primary); font-size: 1.4rem;">0 ₺</div>
+              <div id="modalMonthTotalExpenseCount" class="kpi-subtext">0 adet toplam kayıt</div>
+            </div>
+            <div class="kpi-icon-box kpi-indigo">💳</div>
+          </div>
+
+          <div class="kpi-card" style="border-left: 4px solid var(--danger); background: #fff1f2; padding: 0.9rem;">
+            <div>
+              <div class="kpi-label" style="color: var(--danger);">🔴 Kalan Bekleyen Borç</div>
+              <div id="modalMonthRemainingUnpaidAmount" class="kpi-value tabular-nums" style="color: var(--danger); font-size: 1.4rem;">0 ₺</div>
+              <div id="modalMonthPaidPercent" class="kpi-subtext">%0 tamamlandı</div>
+            </div>
+            <div class="kpi-icon-box kpi-rose">⏳</div>
+          </div>
+        </div>
+
+        <!-- O Ay Ödenenler Listesi -->
+        <div class="card" style="border: 1px solid var(--slate-200); margin-bottom: 0;">
+          <div class="card-header" style="padding: 0.75rem 1rem; background: #f8fafc; border-bottom: 1px solid var(--slate-200); display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--slate-800); display: flex; align-items: center; gap: 6px;">
+              <span>📋</span> <span id="modalMonthTableTitle">Ödenenler Dökümü</span>
+            </div>
+            <span id="modalMonthItemBadge" class="badge" style="background: #dcfce7; color: #15803d; font-size: 0.75rem; font-weight: 700;">0 Kayıt</span>
+          </div>
+          <div class="data-table-container" style="max-height: 380px; overflow-y: auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 140px;">Ödeme Tarihi</th>
+                  <th>Kategori</th>
+                  <th>Ödeme Bilgisi / Başlık</th>
+                  <th style="text-align: right;">Ödenen Tutar</th>
+                  <th style="text-align: center; width: 140px;">İşlem</th>
+                </tr>
+              </thead>
+              <tbody id="modalMonthlyPaidTableBody">
+                <!-- Dinamik satırlar -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+        <button type="button" class="btn btn-secondary" onclick="exportMonthlyPaidToCSV()">
+          <span>📊</span> Bu Ayı Excel İndir
+        </button>
+        <button type="button" class="btn btn-primary" onclick="closeModal('modalMonthlyPaid')">Kapat</button>
+      </div>
     </div>
   </div>
 

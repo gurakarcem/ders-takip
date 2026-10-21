@@ -20,8 +20,11 @@ let appState = {
   myPaymentsCategoryFilter: "all",
   myPaymentsMonthFilter: "all", // 'all' veya ay adı
   myPaymentsSearch: "",
+  upcomingDebtsFilter: "all", // 'all', 'overdue', 'soon', 'thisMonth'
+  modalMonthlyPaidMonth: "",
   charts: {
-    expenseSummary: null
+    expenseSummary: null,
+    monthlyPaidExpenses: null
   }
 };
 
@@ -462,9 +465,18 @@ function renderPage() {
         </td>
       </tr>
     `;
+    renderMonthlyPaidExpensesChart(totals);
     const modalExp = document.getElementById("modalExpenseSummary");
     if (modalExp && modalExp.classList.contains("active")) {
       renderExpenseSummaryModal(period);
+    }
+    const modalUp = document.getElementById("modalUpcomingDebts");
+    if (modalUp && modalUp.classList.contains("active")) {
+      renderUpcomingDebtsModal();
+    }
+    const modalMonth = document.getElementById("modalMonthlyPaid");
+    if (modalMonth && modalMonth.classList.contains("active")) {
+      renderMonthlyPaidModal();
     }
     return;
   }
@@ -525,9 +537,22 @@ function renderPage() {
     `;
   }).join("");
 
+  // 5. Ay Ay Ödediklerimiz ve Bekleyen Borçlar Grafiği
+  renderMonthlyPaidExpensesChart(totals);
+
   const modalExp = document.getElementById("modalExpenseSummary");
   if (modalExp && modalExp.classList.contains("active")) {
     renderExpenseSummaryModal(period);
+  }
+
+  const modalUp = document.getElementById("modalUpcomingDebts");
+  if (modalUp && modalUp.classList.contains("active")) {
+    renderUpcomingDebtsModal();
+  }
+
+  const modalMonth = document.getElementById("modalMonthlyPaid");
+  if (modalMonth && modalMonth.classList.contains("active")) {
+    renderMonthlyPaidModal();
   }
 }
 
@@ -702,15 +727,24 @@ function toggleMyPaymentStatus(paymentId) {
   if (p.status === "paid") {
     p.status = "unpaid";
     p.paidDate = "";
-    showToast(`🔴 "${p.title}" durumu Bekliyor olarak güncellendi.`);
+    showToast(`🔴 "${p.title}" tekrar bekleyen borçlara aktarıldı.`);
   } else {
     p.status = "paid";
     p.paidDate = new Date().toISOString().split("T")[0];
-    showToast(`🟢 "${p.title}" Ödendi olarak işaretlendi! 🎉`);
+    showToast(`🟢 "${p.title}" ödendi olarak işaretlendi ve ödenenlere aktarıldı! 🎉`);
   }
 
   saveData();
   renderPage();
+
+  const modalUp = document.getElementById("modalUpcomingDebts");
+  if (modalUp && modalUp.classList.contains("active")) {
+    renderUpcomingDebtsModal();
+  }
+  const modalPaid = document.getElementById("modalMonthlyPaid");
+  if (modalPaid && modalPaid.classList.contains("active")) {
+    renderMonthlyPaidModal();
+  }
 }
 
 function setMyPaymentFilter(filter) {
@@ -1246,6 +1280,609 @@ function showToast(message) {
   setTimeout(() => {
     toast.classList.remove("show");
   }, 3200);
+}
+
+// --------------------------------------------------------------------------
+// 1. AY AY ÖDEDİKLERİMİZ VE BEKLEYEN BORÇLAR GRAFİĞİ
+// --------------------------------------------------------------------------
+
+function renderMonthlyPaidExpensesChart(totals) {
+  const canvas = document.getElementById("chartMonthlyPaidExpenses");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  if (appState.charts.monthlyPaidExpenses) {
+    appState.charts.monthlyPaidExpenses.destroy();
+    appState.charts.monthlyPaidExpenses = null;
+  }
+
+  const paidData = MONTHS.map(m => totals.monthExpenses[m] ? totals.monthExpenses[m].paid : 0);
+  const unpaidData = MONTHS.map(m => totals.monthExpenses[m] ? totals.monthExpenses[m].unpaid : 0);
+
+  const ctx = canvas.getContext("2d");
+  appState.charts.monthlyPaidExpenses = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: MONTHS,
+      datasets: [
+        {
+          label: "🟢 Her Ay Ödediklerimiz (₺)",
+          data: paidData,
+          backgroundColor: "rgba(16, 185, 129, 0.85)",
+          hoverBackgroundColor: "rgba(16, 185, 129, 1)",
+          borderColor: "#10b981",
+          borderWidth: 1,
+          borderRadius: 6,
+          barPercentage: 0.7,
+          categoryPercentage: 0.8
+        },
+        {
+          label: "🔴 Kalan Bekleyen Borç (₺)",
+          data: unpaidData,
+          backgroundColor: "rgba(239, 68, 68, 0.75)",
+          hoverBackgroundColor: "rgba(239, 68, 68, 1)",
+          borderColor: "#ef4444",
+          borderWidth: 1,
+          borderRadius: 6,
+          barPercentage: 0.7,
+          categoryPercentage: 0.8
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      onClick: (evt, activeElements) => {
+        if (activeElements && activeElements.length > 0) {
+          const index = activeElements[0].index;
+          const monthName = MONTHS[index];
+          if (monthName) {
+            openMonthlyPaidModal(monthName);
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          position: "top",
+          labels: {
+            boxWidth: 14,
+            font: { family: "'Inter', sans-serif", size: 12, weight: 600 }
+          }
+        },
+        tooltip: {
+          padding: 10,
+          boxPadding: 4,
+          callbacks: {
+            label: function(context) {
+              const val = context.parsed.y || 0;
+              return ` ${context.dataset.label}: ${formatCurrency(val)}`;
+            },
+            afterBody: function(contexts) {
+              if (contexts && contexts.length > 0) {
+                const idx = contexts[0].dataIndex;
+                const m = MONTHS[idx];
+                const exp = totals.monthExpenses[m];
+                if (exp) {
+                  return `\n📅 ${m} Ayı Özeti:\n• Toplam: ${formatCurrency(exp.total)}\n• Ödenen Kayıt: ${exp.paidCount} adet\n• Bekleyen Kayıt: ${exp.unpaidCount} adet\n(Tıklayarak o ay ödenenleri açabilirsiniz)`;
+                }
+              }
+              return "";
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: "'Inter', sans-serif", weight: 600 } }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: val => val >= 1000 ? (val / 1000) + "k ₺" : val + " ₺",
+            font: { family: "'Inter', sans-serif" }
+          }
+        }
+      }
+    }
+  });
+}
+
+// --------------------------------------------------------------------------
+// 2. YAKLAŞAN ÖDEMELER VE BEKLEYEN BORÇLAR (GOOGLE TAKVİM ENTEGRASYONU)
+// --------------------------------------------------------------------------
+
+function getDebtDueStatus(dateStr) {
+  if (!dateStr) {
+    return {
+      status: "none",
+      days: 9999,
+      badgeHtml: `<span class="debt-badge-future">📅 Tarih Belirtilmemiş</span>`,
+      cardClass: "is-future",
+      urgencyOrder: 9999
+    };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(dateStr + "T00:00:00");
+  const diffTime = target.getTime() - today.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    const overdue = Math.abs(diffDays);
+    return {
+      status: "overdue",
+      days: diffDays,
+      badgeHtml: `<span class="debt-badge-overdue">⚠️ ${overdue} gün gecikti!</span>`,
+      cardClass: "is-overdue",
+      urgencyOrder: diffDays // en çok geciken en negatif -> en başta
+    };
+  } else if (diffDays === 0) {
+    return {
+      status: "today",
+      days: 0,
+      badgeHtml: `<span class="debt-badge-today">⚡ Bugün Son Gün!</span>`,
+      cardClass: "is-today",
+      urgencyOrder: 0
+    };
+  } else if (diffDays <= 7) {
+    return {
+      status: "soon",
+      days: diffDays,
+      badgeHtml: `<span class="debt-badge-soon">⏰ ${diffDays} gün kaldı</span>`,
+      cardClass: "is-soon",
+      urgencyOrder: diffDays
+    };
+  } else {
+    return {
+      status: "future",
+      days: diffDays,
+      badgeHtml: `<span class="debt-badge-future">📅 ${diffDays} gün var</span>`,
+      cardClass: "is-future",
+      urgencyOrder: diffDays
+    };
+  }
+}
+
+function openUpcomingDebtsModal(filter) {
+  appState.upcomingDebtsFilter = filter || "all";
+  renderUpcomingDebtsModal();
+  openModal("modalUpcomingDebts");
+}
+
+function filterUpcomingDebts(filter) {
+  appState.upcomingDebtsFilter = filter || "all";
+  const btnAll = document.getElementById("btnFilterUpAll");
+  const btnOverdue = document.getElementById("btnFilterUpOverdue");
+  const btnSoon = document.getElementById("btnFilterUpSoon");
+  const btnMonth = document.getElementById("btnFilterUpMonth");
+
+  if (btnAll) btnAll.classList.toggle("active", filter === "all");
+  if (btnOverdue) btnOverdue.classList.toggle("active", filter === "overdue");
+  if (btnSoon) btnSoon.classList.toggle("active", filter === "soon");
+  if (btnMonth) btnMonth.classList.toggle("active", filter === "thisMonth");
+
+  renderUpcomingDebtsModal();
+}
+
+function renderUpcomingDebtsModal() {
+  const period = getActivePeriod();
+  if (!period) return;
+  ensureMyPaymentsArray(period);
+
+  const list = period.myPayments || [];
+  const unpaidList = list.filter(p => p.status === "unpaid");
+
+  // İstatistikler
+  let totalUnpaidAmt = 0;
+  let overdueAmt = 0;
+  let overdueCnt = 0;
+  let soonAmt = 0;
+  let soonCnt = 0;
+
+  const currentMonthName = MONTH_MAP[new Date().getMonth() + 1] || "";
+
+  unpaidList.forEach(p => {
+    const amt = parseFloat(p.amount) || 0;
+    totalUnpaidAmt += amt;
+    const due = getDebtDueStatus(p.date);
+    if (due.status === "overdue") {
+      overdueAmt += amt;
+      overdueCnt++;
+    } else if (due.status === "today" || due.status === "soon") {
+      soonAmt += amt;
+      soonCnt++;
+    }
+  });
+
+  const elUnpaidAmt = document.getElementById("modalUpUnpaidAmount");
+  if (elUnpaidAmt) elUnpaidAmt.textContent = formatCurrency(totalUnpaidAmt);
+  const elUnpaidCnt = document.getElementById("modalUpUnpaidCount");
+  if (elUnpaidCnt) elUnpaidCnt.textContent = `${unpaidList.length} adet ödeme bekliyor`;
+
+  const elOverdueAmt = document.getElementById("modalUpOverdueAmount");
+  if (elOverdueAmt) elOverdueAmt.textContent = formatCurrency(overdueAmt);
+  const elOverdueCnt = document.getElementById("modalUpOverdueCount");
+  if (elOverdueCnt) elOverdueCnt.textContent = `${overdueCnt} adet geciken ödeme`;
+
+  const elSoonAmt = document.getElementById("modalUpSoonAmount");
+  if (elSoonAmt) elSoonAmt.textContent = formatCurrency(soonAmt);
+  const elSoonCnt = document.getElementById("modalUpSoonCount");
+  if (elSoonCnt) elSoonCnt.textContent = `${soonCnt} adet yakın ödeme`;
+
+  // Sıralama: En acil (gecikmiş) en üstte
+  unpaidList.sort((a, b) => {
+    const dueA = getDebtDueStatus(a.date);
+    const dueB = getDebtDueStatus(b.date);
+    return dueA.urgencyOrder - dueB.urgencyOrder;
+  });
+
+  // Filtreleme
+  const filter = appState.upcomingDebtsFilter || "all";
+  const filteredList = unpaidList.filter(p => {
+    const due = getDebtDueStatus(p.date);
+    if (filter === "overdue") return due.status === "overdue";
+    if (filter === "soon") return due.status === "today" || due.status === "soon";
+    if (filter === "thisMonth") {
+      const mName = getPaymentMonthName(p.date);
+      return mName === currentMonthName;
+    }
+    return true;
+  });
+
+  const container = document.getElementById("modalUpcomingDebtsList");
+  if (!container) return;
+
+  if (filteredList.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 2.5rem 1rem; color: var(--slate-500); background: #f8fafc; border-radius: 10px; border: 1px dashed var(--slate-300);">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎉</div>
+        <div style="font-weight: 700; font-size: 1.1rem; color: var(--slate-800); margin-bottom: 0.25rem;">
+          ${filter === "overdue" ? "Günü geçmiş herhangi bir borcunuz bulunmuyor!" : filter === "soon" ? "Önümüzdeki 7 gün içerisinde vadesi yaklaşan borç yok!" : "Bekleyen borç bulunmuyor!"}
+        </div>
+        <div style="font-size: 0.85rem; color: var(--slate-500);">Tüm ödemeleriniz güncel ve kontrol altında.</div>
+      </div>
+    `;
+    return;
+  }
+
+  const CAT_ICONS = {
+    "Kredi Kartı": "💳",
+    "Fatura": "💡",
+    "Kira & Aidat": "🏠",
+    "Kredi Taksiti": "🏦",
+    "Sigorta & Vergi": "🛡️",
+    "Alışveriş & Market": "🛒",
+    "Diğer": "📝"
+  };
+
+  container.innerHTML = filteredList.map(item => {
+    const due = getDebtDueStatus(item.date);
+    const catIcon = CAT_ICONS[item.category] || "🏷️";
+    const dateFormatted = item.date ? formatDateTurkish(item.date) : "Tarih Belirtilmemiş";
+
+    return `
+      <div class="upcoming-debt-card ${due.cardClass}">
+        <div style="display: flex; align-items: flex-start; gap: 0.85rem; flex: 1; min-width: 220px;">
+          <div style="font-size: 1.8rem; line-height: 1; padding-top: 2px;">
+            ${catIcon}
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px;">
+              <span style="font-weight: 800; color: var(--slate-900); font-size: 1rem;">${escapeHtml(item.title)}</span>
+              ${due.badgeHtml}
+              <span class="badge" style="background: var(--slate-100); color: var(--slate-700); font-size: 0.72rem;">${escapeHtml(item.category || 'Gider')}</span>
+            </div>
+            <div style="font-size: 0.825rem; color: var(--slate-600); display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <span>📅 Son Ödeme: <strong>${dateFormatted}</strong></span>
+              ${item.note ? `<span style="color: var(--slate-500);">📝 ${escapeHtml(item.note)}</span>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: flex-end;">
+          <div style="text-align: right;">
+            <div style="font-size: 1.35rem; font-weight: 800; color: var(--danger);" class="tabular-nums">
+              ${formatCurrency(item.amount)}
+            </div>
+            <div style="font-size: 0.72rem; color: var(--slate-400);">Ödenmedi</div>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button type="button" class="btn-google-cal" onclick="addToGoogleCalendar('${item.id}')" title="Bu borcu Google Takviminize ekleyin ve telefonunuzda hatırlatıcı kurun">
+              <span>📅</span> Google Takvime Ekle
+            </button>
+            <button type="button" class="btn btn-success btn-sm" onclick="markDebtAsPaidFromModal('${item.id}')" style="padding: 6px 12px; font-weight: 700; font-size: 0.8rem; white-space: nowrap;" title="Bu borcu ödendi olarak işaretle">
+              <span>🟢</span> Ödendi Yap
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function addToGoogleCalendar(paymentId) {
+  const period = getActivePeriod();
+  if (!period) return;
+  const item = (period.myPayments || []).find(p => p.id === paymentId);
+  if (!item) return;
+
+  const dateStr = item.date;
+  if (!dateStr) {
+    alert("Bu ödemenin tarihi belirtilmemiş!");
+    return;
+  }
+
+  // YYYYMMDD formatı
+  const cleanStart = dateStr.replace(/-/g, "");
+  // Bitiş günü ertesi gün (tüm gün etkinliği için)
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + 1);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const cleanEnd = `${y}${m}${day}`;
+
+  const title = `Ödeme: ${item.title} (${formatCurrency(item.amount)})`;
+  const details = `💰 Ödenecek Tutar: ${formatCurrency(item.amount)}\n🏷️ Kategori: ${item.category || 'Gider'}\n📅 Son Ödeme Tarihi: ${formatDateTurkish(item.date)}\n${item.note ? '📝 Not: ' + item.note + '\n' : ''}\n(DersTakip Pro - Borç & Gider Hatırlatması)`;
+
+  const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${cleanStart}/${cleanEnd}&details=${encodeURIComponent(details)}&sf=true&output=xml`;
+  window.open(url, "_blank");
+}
+
+function exportUpcomingDebtsToICS() {
+  const period = getActivePeriod();
+  if (!period) return;
+  const unpaid = (period.myPayments || []).filter(p => p.status === "unpaid" && p.date);
+  if (unpaid.length === 0) {
+    showToast("Aktarılacak bekleyen borç bulunamadı.");
+    return;
+  }
+
+  let ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//DersTakip Pro//Kisisel Odemeler//TR",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "X-WR-CALNAME:Cem Baba - Bekleyen Borçlar ve Ödemeler"
+  ];
+
+  const nowStr = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+
+  unpaid.forEach(item => {
+    const cleanDate = item.date.replace(/-/g, "");
+    const d = new Date(item.date + "T00:00:00");
+    d.setDate(d.getDate() + 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const nextDate = `${y}${m}${day}`;
+
+    ics.push("BEGIN:VEVENT");
+    ics.push(`UID:pay-${item.id}-${cleanDate}@derstakip.pro`);
+    ics.push(`DTSTAMP:${nowStr}`);
+    ics.push(`DTSTART;VALUE=DATE:${cleanDate}`);
+    ics.push(`DTEND;VALUE=DATE:${nextDate}`);
+    ics.push(`SUMMARY:Ödeme: ${item.title.replace(/\n/g, " ")} (${formatCurrency(item.amount)})`);
+    ics.push(`DESCRIPTION:Tutar: ${formatCurrency(item.amount)}\\nKategori: ${item.category || 'Gider'}\\nNot: ${(item.note || '').replace(/\n/g, " ")}`);
+    ics.push("STATUS:CONFIRMED");
+    ics.push("TRANSP:TRANSPARENT");
+    ics.push("END:VEVENT");
+  });
+
+  ics.push("END:VCALENDAR");
+
+  const blob = new Blob([ics.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `Cem_Baba_Bekleyen_Borclar_${new Date().toISOString().slice(0, 10)}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast("📅 Google Takvim / iCal dosyası indirildi!");
+}
+
+function markDebtAsPaidFromModal(paymentId) {
+  toggleMyPaymentStatus(paymentId);
+}
+
+// --------------------------------------------------------------------------
+// 3. O AYKİ ÖDENENLER DETAY VE BİLGİLENDİRME MODALI
+// --------------------------------------------------------------------------
+
+function openMonthlyPaidModal(month) {
+  if (month && month !== "all") {
+    appState.modalMonthlyPaidMonth = month;
+  } else if (!appState.modalMonthlyPaidMonth || appState.modalMonthlyPaidMonth === "all") {
+    if (appState.myPaymentsMonthFilter && appState.myPaymentsMonthFilter !== "all") {
+      appState.modalMonthlyPaidMonth = appState.myPaymentsMonthFilter;
+    } else {
+      const curCalMonth = MONTH_MAP[new Date().getMonth() + 1];
+      appState.modalMonthlyPaidMonth = curCalMonth || "Ekim";
+    }
+  }
+
+  renderMonthlyPaidModal();
+  openModal("modalMonthlyPaid");
+}
+
+function filterModalMonthlyPaidTo(month) {
+  appState.modalMonthlyPaidMonth = month;
+  renderMonthlyPaidModal();
+}
+
+function renderMonthlyPaidModal(targetMonth) {
+  if (targetMonth) appState.modalMonthlyPaidMonth = targetMonth;
+  const period = getActivePeriod();
+  if (!period) return;
+  ensureMyPaymentsArray(period);
+
+  const activeMonth = appState.modalMonthlyPaidMonth || "Ekim";
+  const totals = calculateMyPaymentsTotals(period);
+  const monthData = totals.monthExpenses[activeMonth] || { total: 0, paid: 0, unpaid: 0, count: 0, paidCount: 0, unpaidCount: 0, items: [] };
+
+  // 1. Modal Başlıkları
+  const titleEl = document.getElementById("modalMonthlyPaidHeaderTitle");
+  if (titleEl) {
+    titleEl.textContent = `🟢 ${activeMonth} Ayında Ödenen Giderler ve Borçlar`;
+  }
+
+  const tableTitleEl = document.getElementById("modalMonthTableTitle");
+  if (tableTitleEl) {
+    tableTitleEl.textContent = `${activeMonth} Ayı Ödenenler Dökümü`;
+  }
+
+  const itemBadgeEl = document.getElementById("modalMonthItemBadge");
+  if (itemBadgeEl) {
+    itemBadgeEl.textContent = `${monthData.paidCount} Ödenen Kayıt`;
+  }
+
+  // 2. Yatay Ay Çipleri
+  const chipStrip = document.getElementById("modalMonthlyPaidChipStrip");
+  if (chipStrip) {
+    chipStrip.innerHTML = MONTHS.map(m => {
+      const exp = totals.monthExpenses[m] || { paid: 0, paidCount: 0 };
+      const isActive = m === activeMonth;
+      return `
+        <button type="button" class="month-chip-tab ${isActive ? 'active' : ''}" onclick="filterModalMonthlyPaidTo('${m}')" title="${m} ayı ödenenlerini incele">
+          📅 ${m} ${exp.paidCount > 0 ? `<span style="background: rgba(0,0,0,0.12); padding: 2px 6px; border-radius: 10px; font-size: 0.72rem; margin-left: 4px;">${formatCurrency(exp.paid)}</span>` : ''}
+        </button>
+      `;
+    }).join("");
+  }
+
+  // 3. Özet KPI Kartları
+  const cardLabel = document.getElementById("modalMonthPaidCardLabel");
+  if (cardLabel) cardLabel.textContent = `🟢 ${activeMonth} Ayı Ödenen Toplam`;
+
+  const paidAmtEl = document.getElementById("modalMonthPaidAmount");
+  if (paidAmtEl) paidAmtEl.textContent = formatCurrency(monthData.paid);
+
+  const paidCntEl = document.getElementById("modalMonthPaidCount");
+  if (paidCntEl) paidCntEl.textContent = `${monthData.paidCount} adet ödendi`;
+
+  const totalExpAmtEl = document.getElementById("modalMonthTotalExpenseAmount");
+  if (totalExpAmtEl) totalExpAmtEl.textContent = formatCurrency(monthData.total);
+
+  const totalExpCntEl = document.getElementById("modalMonthTotalExpenseCount");
+  if (totalExpCntEl) totalExpCntEl.textContent = `${monthData.count} adet toplam kayıt`;
+
+  const remUnpaidEl = document.getElementById("modalMonthRemainingUnpaidAmount");
+  if (remUnpaidEl) remUnpaidEl.textContent = formatCurrency(monthData.unpaid);
+
+  const paidPctEl = document.getElementById("modalMonthPaidPercent");
+  if (paidPctEl) {
+    const pct = monthData.total > 0 ? Math.round((monthData.paid / monthData.total) * 100) : 0;
+    paidPctEl.textContent = `%${pct} ödendi (${monthData.unpaidCount} adet bekliyor)`;
+  }
+
+  // 4. Tablo Satırları
+  const tbody = document.getElementById("modalMonthlyPaidTableBody");
+  if (!tbody) return;
+
+  const paidItems = (monthData.items || []).filter(p => p.status === "paid");
+  paidItems.sort((a, b) => (b.paidDate || b.date || "").localeCompare(a.paidDate || a.date || ""));
+
+  if (paidItems.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 2.5rem 1rem; color: var(--slate-500);">
+          <div style="font-size: 2.4rem; margin-bottom: 0.5rem;">ℹ️</div>
+          <div style="font-weight: 700; color: var(--slate-800); margin-bottom: 0.25rem;">${activeMonth} ayı için henüz ödenmiş kayıt bulunmuyor.</div>
+          <div style="font-size: 0.85rem; color: var(--slate-500);">${monthData.unpaidCount > 0 ? `Bu ayda ${formatCurrency(monthData.unpaid)} tutarında ${monthData.unpaidCount} adet bekleyen borcunuz var.` : "Bu aya ait harcama kaydı bulunmuyor."}</div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const CAT_ICONS = {
+    "Kredi Kartı": "💳",
+    "Fatura": "💡",
+    "Kira & Aidat": "🏠",
+    "Kredi Taksiti": "🏦",
+    "Sigorta & Vergi": "🛡️",
+    "Alışveriş & Market": "🛒",
+    "Diğer": "📝"
+  };
+
+  tbody.innerHTML = paidItems.map(item => {
+    const icon = CAT_ICONS[item.category] || "🏷️";
+    const dateFormatted = item.paidDate ? formatDateTurkish(item.paidDate) : formatDateTurkish(item.date);
+
+    return `
+      <tr>
+        <td style="font-weight: 600; color: var(--slate-800); white-space: nowrap;">
+          📅 ${dateFormatted}
+        </td>
+        <td>
+          <span class="badge" style="background: var(--slate-100); color: var(--slate-800); font-weight: 600; font-size: 0.775rem;">
+            ${icon} ${escapeHtml(item.category || 'Gider')}
+          </span>
+        </td>
+        <td>
+          <div style="font-weight: 700; color: var(--slate-900);">${escapeHtml(item.title)}</div>
+          ${item.note ? `<div style="font-size: 0.775rem; color: var(--slate-500); margin-top: 2px;">📝 ${escapeHtml(item.note)}</div>` : ''}
+        </td>
+        <td style="text-align: right; font-weight: 800; font-size: 1.05rem; color: #16a34a;" class="tabular-nums">
+          ${formatCurrency(item.amount)}
+        </td>
+        <td style="text-align: center;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="markPaymentAsUnpaidFromModal('${item.id}')" style="padding: 3px 8px; font-size: 0.75rem; white-space: nowrap; color: #dc2626;" title="Bu ödemeyi ödenmedi durumuna alıp bekleyenlere taşı">
+            ↩️ Ödenmedi Yap
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function markPaymentAsUnpaidFromModal(paymentId) {
+  const period = getActivePeriod();
+  if (!period) return;
+  ensureMyPaymentsArray(period);
+
+  const item = period.myPayments.find(p => p.id === paymentId);
+  if (!item) return;
+
+  item.status = "unpaid";
+  item.paidDate = "";
+  saveData();
+
+  renderPage();
+  renderMonthlyPaidModal();
+  showToast(`↩️ "${item.title}" bekleyen borçlar listesine alındı.`);
+}
+
+function exportMonthlyPaidToCSV() {
+  const period = getActivePeriod();
+  if (!period) return;
+  const month = appState.modalMonthlyPaidMonth || "Ekim";
+  const totals = calculateMyPaymentsTotals(period);
+  const monthData = totals.monthExpenses[month];
+  if (!monthData) return;
+
+  const paidItems = (monthData.items || []).filter(p => p.status === "paid");
+  if (paidItems.length === 0) {
+    showToast(`${month} ayında ödenmiş kayıt bulunamadı.`);
+    return;
+  }
+
+  let csv = "Ödeme Tarihi;Ödeme Bilgisi;Kategori;Tutar;Durum;Not\n";
+  paidItems.forEach(p => {
+    csv += `"${p.paidDate || p.date}";"${p.title.replace(/"/g, '""')}";"${p.category || ''}";"${p.amount}";"Ödendi";"${(p.note || '').replace(/"/g, '""')}"\n`;
+  });
+
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `Cem_Baba_${month}_Odenen_Giderler.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast(`📊 ${month} ayı ödenenler Excel listesi indirildi.`);
 }
 
 document.addEventListener("DOMContentLoaded", initExpenseApp);
