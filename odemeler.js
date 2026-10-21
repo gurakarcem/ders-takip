@@ -47,14 +47,16 @@ function initExpenseApp() {
     }
   });
 
-  // Bulut senkronizasyonu hazır olduğunda dinle
+  // Bulut senkronizasyonunu başlat ve canlı gelen güncellemeleri dinle
   if (window.CloudSync) {
-    window.CloudSync.onDataPulled((newData) => {
-      if (newData) {
-        appState.data = newData;
-        if (newData.activePeriodId) appState.activePeriodId = newData.activePeriodId;
-        renderPage();
-        showToast("☁️ Buluttan en güncel gider verileri alındı.");
+    window.CloudSync.init({
+      onDataUpdated: (newData) => {
+        if (newData) {
+          appState.data = newData;
+          if (newData.activePeriodId) appState.activePeriodId = newData.activePeriodId;
+          renderPage();
+          showToast("☁️ Buluttan güncel veriler eşitlendi.");
+        }
       }
     });
   }

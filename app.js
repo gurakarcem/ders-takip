@@ -4459,14 +4459,14 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 // --------------------------------------------------------------------------
-// BULUT SENKRONİZASYON ARAYÜZ YÖNETİMİ
+// BULUT SENKRONİZASYON ARAYÜZ YÖNETİMİ (DOĞRUDAN ODA / QR İLE EŞİTLEME)
 // --------------------------------------------------------------------------
 function openCloudSyncModal() {
   updateCloudModalView();
   openModal('modalCloudSync');
 }
 
-async function updateCloudModalView() {
+function updateCloudModalView() {
   if (!window.CloudSync) return;
   const cfg = window.CloudSync.getConfig();
 
@@ -4480,44 +4480,25 @@ async function updateCloudModalView() {
       lastInfoEl.textContent = 'Yapılan işlemler cihazınızda güvende saklanıyor, internet gelince otomatik eşitlenecek.';
     } else if (cfg.lastSyncedAt) {
       const timeStr = new Date(cfg.lastSyncedAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      statusEl.textContent = '🟢 Tüm cihazlar güncel ve senkronize';
+      statusEl.textContent = '🟢 Canlı Senkronizasyon Açık (Telefon & PC)';
       lastInfoEl.textContent = `Son eşitleme: ${timeStr} (${cfg.lastDevice || 'Bu Cihaz'})`;
     } else {
-      statusEl.textContent = '🟡 Eşitleme Yapılandırılmadı (Yerel Kayıt Aktif)';
-      lastInfoEl.textContent = 'Bulut bağlantısını başlatmak için aşağıdaki yöntemlerden birini seçin.';
+      statusEl.textContent = '🟢 Canlı Eşitleme Hazır';
+      lastInfoEl.textContent = 'Telefonunuzun kamerasıyla QR kodu okutarak anında eşleşebilirsiniz.';
     }
   }
 
-  // Firebase URL kutusu
-  const fbInput = document.getElementById('cloudFirebaseUrlInput');
-  if (fbInput && cfg.firebaseUrl) {
-    fbInput.value = cfg.firebaseUrl;
+  // Eşitleme Odası Kodu
+  const roomInput = document.getElementById('cloudSyncRoomInput');
+  if (roomInput) {
+    roomInput.value = window.CloudSync.getSyncRoom();
   }
 
-  // Puter Auth Durumu
-  const puterStatusEl = document.getElementById('puterAuthStatus');
-  const btnPuter = document.getElementById('btnPuterAuth');
-  if (window.puter && window.puter.auth) {
-    try {
-      const isLogged = await window.puter.auth.isSignedIn();
-      if (isLogged) {
-        const user = await window.puter.auth.getUser();
-        if (puterStatusEl) puterStatusEl.innerHTML = `🟢 Bağlandı: <strong>${user ? user.username : 'Google Kullanıcısı'}</strong>`;
-        if (btnPuter) btnPuter.innerHTML = `<span>🔓</span> Çıkış Yap`;
-      } else {
-        if (puterStatusEl) puterStatusEl.textContent = 'Henüz bağlanmadı';
-        if (btnPuter) btnPuter.innerHTML = `<span>🔑</span> Google ile Giriş Yap & Bağlan`;
-      }
-    } catch (e) {
-      if (puterStatusEl) puterStatusEl.textContent = '';
-    }
+  // QR Kod Görseli
+  const qrImg = document.getElementById('cloudQrImage');
+  if (qrImg) {
+    qrImg.src = window.CloudSync.getQrCodeUrl();
   }
-
-  // Aktif sağlayıcı kartını vurgula
-  const cardPuter = document.getElementById('cardPuterSync');
-  const cardFb = document.getElementById('cardFirebaseSync');
-  if (cardPuter) cardPuter.classList.toggle('active-provider', cfg.provider === 'puter');
-  if (cardFb) cardFb.classList.toggle('active-provider', cfg.provider === 'firebase');
 }
 
 async function triggerManualCloudSync() {
@@ -4527,65 +4508,20 @@ async function triggerManualCloudSync() {
   updateCloudModalView();
 }
 
-async function handlePuterAuth() {
-  if (!window.puter || !window.puter.auth) {
-    showToast('Puter kütüphanesi yüklenemedi. Firebase seçeneğini deneyebilirsiniz.');
-    return;
-  }
-
-  try {
-    const isLogged = await window.puter.auth.isSignedIn();
-    if (isLogged) {
-      if (confirm('Google bulut oturumunu kapatmak istiyor musunuz?')) {
-        await window.puter.auth.signOut();
-        showToast('Bulut oturumu kapatıldı.');
-      }
-    } else {
-      await window.puter.auth.signIn();
-      window.CloudSync.saveConfig({ provider: 'puter' });
-      showToast('Google ile bağlantı sağlandı! Eşitleniyor...');
-      await window.CloudSync.sync(true);
-    }
-    updateCloudModalView();
-  } catch (err) {
-    console.error('Puter auth hata:', err);
-    showToast(`Bağlantı hatası: ${err.message || err}`);
-  }
-}
-
-function saveFirebaseCloudConfig() {
+function saveDirectSyncRoom() {
   if (!window.CloudSync) return;
-  const input = document.getElementById('cloudFirebaseUrlInput');
+  const input = document.getElementById('cloudSyncRoomInput');
   if (!input) return;
-  const url = input.value.trim();
+  const newRoom = input.value.trim();
 
-  if (!url) {
-    alert('Lütfen geçerli bir Firebase Realtime Database URL adresi girin.');
+  if (!newRoom) {
+    alert('Lütfen geçerli bir eşitleme kodu girin.');
     return;
   }
 
-  window.CloudSync.saveConfig({
-    provider: 'firebase',
-    firebaseUrl: url
-  });
-
-  showToast('Firebase ayarları kaydedildi, eşitleniyor...');
-  window.CloudSync.sync(true);
+  window.CloudSync.setSyncRoom(newRoom);
+  showToast(`✅ Eşitleme odası "${newRoom}" olarak güncellendi!`);
   updateCloudModalView();
-}
-
-function toggleCloudQrCode() {
-  if (!window.CloudSync) return;
-  const container = document.getElementById('cloudQrContainer');
-  const img = document.getElementById('cloudQrImage');
-  if (!container || !img) return;
-
-  if (container.style.display === 'none' || !container.style.display) {
-    img.src = window.CloudSync.getQrCodeUrl();
-    container.style.display = 'flex';
-  } else {
-    container.style.display = 'none';
-  }
 }
 
 function copyCloudShareLink() {
@@ -4594,7 +4530,7 @@ function copyCloudShareLink() {
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(shareUrl).then(() => {
-      showToast('📱 Eşleştirme linki kopyalandı! Telefonunuzda açabilirsiniz.');
+      showToast('📱 WhatsApp eşleştirme linki kopyalandı! Telefonunuzda açabilirsiniz.');
     }).catch(() => {
       prompt('Aşağıdaki bağlantıyı kopyalayıp telefonunuza gönderin:', shareUrl);
     });
@@ -4602,4 +4538,11 @@ function copyCloudShareLink() {
     prompt('Aşağıdaki bağlantıyı kopyalayıp telefonunuza gönderin:', shareUrl);
   }
 }
+
+function openShareLinkInNewTab() {
+  if (!window.CloudSync) return;
+  const shareUrl = window.CloudSync.getShareUrl();
+  window.open(shareUrl, '_blank');
+}
+
 

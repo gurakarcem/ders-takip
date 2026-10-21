@@ -1,11 +1,13 @@
 // DersTakip Pro - Service Worker (Çevrimdışı / Offline PWA Motoru)
-const CACHE_NAME = 'derstakip-pro-v3';
+const CACHE_NAME = 'derstakip-pro-v4';
 
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
+  './odemeler.html',
   './styles.css',
   './app.js',
+  './odemeler.js',
   './cloud_sync.js',
   './initial_data.js',
   './manifest.json',

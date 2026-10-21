@@ -1703,63 +1703,52 @@
           💡 <strong>Nasıl Çalışır?</strong> İster bilgisayarınızdan ister telefonunuzdan girin; girdiğiniz her ders ve ödeme bilgisi anında ortak bulutta saklanır. Başka bir cihazda siteyi açtığınızda <strong>en son girilen güncel liste</strong> otomatik olarak önünüze gelir.
         </div>
 
-        <!-- 1. SEÇENEK: Google ile 1-Tıkla Bağlan (Puter Bulutu - Sıfır Kurulum) -->
-        <div class="cloud-sync-card" id="cardPuterSync">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-            <div style="font-weight: 700; color: var(--slate-800); display: flex; align-items: center; gap: 0.4rem;">
-              <span>🌐</span> 1. Seçenek: Google / Puter ile 1-Tıkla Bağlan
+        <!-- DOĞRUDAN TELEFON & PC CANLI EŞİTLEME (SIFIR KURULUM) -->
+        <div class="cloud-sync-card active-provider" style="background: #ffffff; border: 2px solid #3b82f6; border-radius: 12px; padding: 1.25rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <div style="font-weight: 700; color: var(--slate-800); display: flex; align-items: center; gap: 0.5rem; font-size: 1rem;">
+              <span>⚡</span> Telefonunuzu Bilgisayarla Eşleştirin
             </div>
-            <span class="badge" style="background: #dbeafe; color: #1d4ed8; font-size: 0.725rem; padding: 2px 8px; border-radius: 999px;">Tavsiye Edilen</span>
+            <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 0.75rem; padding: 3px 10px; border-radius: 999px; font-weight: 600;">Canlı & Anlık</span>
           </div>
-          <p style="font-size: 0.8rem; color: var(--slate-600); margin-bottom: 0.75rem;">
-            Hiçbir veritabanı veya teknik ayar gerekmez. Sadece Google hesabınızla giriş yapın; tüm cihazlarınız otomatik olarak aynı hesaba bağlanır.
-          </p>
-          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-            <button type="button" id="btnPuterAuth" class="btn btn-google" onclick="handlePuterAuth()">
-              <span>🔑</span> Google ile Giriş Yap & Bağlan
-            </button>
-            <span id="puterAuthStatus" style="font-size: 0.8rem; color: var(--slate-500);"></span>
-          </div>
-        </div>
 
-        <!-- 2. SEÇENEK: Google Firebase Realtime Database (Alternatif) -->
-        <div class="cloud-sync-card" id="cardFirebaseSync">
-          <div style="font-weight: 700; color: var(--slate-800); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
-            <span>🔥</span> 2. Seçenek: Firebase Realtime Database (Google)
-          </div>
-          <p style="font-size: 0.8rem; color: var(--slate-600); margin-bottom: 0.75rem;">
-            Kendi Google Firebase Realtime Database URL'nizi bağlayabilirsiniz.
+          <p style="font-size: 0.85rem; color: var(--slate-600); margin-bottom: 1rem; line-height: 1.5;">
+            Giriş veya şifre gerekmez! Telefonunuzun kamerasıyla aşağıdaki <strong>QR kodu okutun</strong> veya linki WhatsApp ile kendinize gönderin. Telefonda veya PC'de yaptığınız her değişiklik diğer cihaza <strong>anında aktarılır</strong>.
           </p>
-          <div class="form-group" style="margin-bottom: 0.75rem;">
-            <label style="font-size: 0.8rem; font-weight: 600; color: var(--slate-700);">Firebase Veritabanı URL'si:</label>
-            <input type="url" id="cloudFirebaseUrlInput" class="form-control" placeholder="https://ornek-proje-default-rtdb.firebaseio.com/ders_data.json" style="font-size: 0.85rem;">
-          </div>
-          <button type="button" class="btn btn-secondary" onclick="saveFirebaseCloudConfig()">
-            <span>💾</span> Firebase Ayarını Kaydet & Bağlan
-          </button>
-        </div>
 
-        <!-- 📱 TELEFON İLE EŞLEŞTİRME (QR & LINK) -->
-        <div style="border-top: 1px solid var(--slate-200); padding-top: 1rem; margin-top: 1rem;">
-          <h4 style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
-            <span>📱</span> Telefonunuzu Bu Cihazla Eşleştirin
-          </h4>
-          <p style="font-size: 0.8rem; color: var(--slate-500); margin-bottom: 0.75rem;">
-            Bilgisayardaki bulut ayarlarınızı telefonunuza tek tek yazmanıza gerek yok!
-          </p>
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <button type="button" class="btn btn-secondary" onclick="toggleCloudQrCode()">
-              <span>📷</span> Telefona QR Kodu Göster
-            </button>
-            <button type="button" class="btn btn-secondary" onclick="copyCloudShareLink()">
-              <span>📋</span> Telefon Linkini Kopyala (WhatsApp)
-            </button>
+          <!-- QR Kod ve Link Alanı -->
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem;">
+            <div id="cloudQrContainer" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+              <img id="cloudQrImage" class="qr-image" alt="Telefon Eşleştirme QR Kodu" style="width: 220px; height: 220px; border-radius: 10px; background: #fff; padding: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+              <div style="font-size: 0.8rem; color: var(--slate-600); font-weight: 600; text-align: center; margin-top: 4px;">
+                📷 Telefon kamerasını QR koda tutarak hemen açın
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin-top: 1rem; width: 100%;">
+              <button type="button" class="btn btn-secondary" onclick="copyCloudShareLink()" style="gap: 0.4rem; background: #ecfdf5; border-color: #a7f3d0; color: #065f46; font-weight: 600;">
+                <span>💬</span> Telefon Bağlantı Linkini Kopyala (WhatsApp)
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="openShareLinkInNewTab()" style="gap: 0.4rem;">
+                <span>🔗</span> Yeni Sekmede Test Et
+              </button>
+            </div>
           </div>
-          
-          <div id="cloudQrContainer" class="qr-preview-container" style="display: none;">
-            <img id="cloudQrImage" class="qr-image" alt="Telefon Eşleştirme QR Kodu">
-            <div style="font-size: 0.8rem; color: var(--slate-600); font-weight: 500;">
-              Telefonunuzun kamerasıyla bu QR kodu okutarak doğrudan açabilirsiniz.
+
+          <!-- Ortak Eşitleme Odası Kodu -->
+          <div style="background: #f1f5f9; border-radius: 8px; padding: 0.75rem 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <label for="cloudSyncRoomInput" style="font-size: 0.8rem; font-weight: 700; color: var(--slate-700);">Ortak Eşitleme Kodu (Oda):</label>
+              <span style="font-size: 0.75rem; color: var(--slate-500);">Varsayılan: cem_baba_ders_takip</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="text" id="cloudSyncRoomInput" class="form-control" placeholder="cem_baba_ders_takip" style="font-size: 0.875rem; font-family: monospace; font-weight: 600;">
+              <button type="button" class="btn btn-secondary" onclick="saveDirectSyncRoom()" style="white-space: nowrap;">
+                <span>💾</span> Kodu Kaydet
+              </button>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--slate-500); margin-top: 0.35rem;">
+              💡 Aynı kodu kullanan tüm cihazlarınız otomatik olarak birbirine bağlanır.
             </div>
           </div>
         </div>
@@ -1798,7 +1787,6 @@
   <div id="appToast" class="toast"></div>
 
   <!-- Veritabanı ve Mantık Betikleri -->
-  <script src="https://js.puter.com/v2/"></script>
   <script src="cloud_sync.js"></script>
   <script src="initial_data.js"></script>
   <script src="app.js"></script>

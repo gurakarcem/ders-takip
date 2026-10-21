@@ -1,21 +1,20 @@
 /**
- * DersTakip Pro - Cihazlar Arası Bulut Senkronizasyon Motoru (CloudSync)
- * Bilgisayar, telefon ve tabletler arasında verileri ortak bulutta tutar ve
- * her cihazda en son girilen güncel durumun otomatik yüklenmesini sağlar.
+ * DersTakip Pro - Cihazlar Arası Canlı Bulut Senkronizasyon Motoru (CloudSync)
+ * Telefon, tablet ve bilgisayar arasında doğrudan, hesap/şifre gerekmeden
+ * anlık ve çift yönlü senkronizasyon sağlar.
  */
 
 (function (window) {
   'use strict';
 
-  // Varsayılan Yapılandırma
   const CONFIG_STORAGE_KEY = 'DERS_TAKIP_CLOUD_CONFIG';
   const DATA_STORAGE_KEY = 'DERS_TAKIP_PRO_DATA';
+  const DEFAULT_SYNC_ROOM = 'cem_baba_ders_takip';
+  const SYNC_SERVER = 'https://ntfy.sh';
 
   const defaultState = {
-    provider: 'puter', // 'puter', 'firebase', 'custom'
-    firebaseUrl: '',
-    customUrl: '',
-    customKey: '',
+    provider: 'direct', // 'direct'
+    syncRoom: DEFAULT_SYNC_ROOM,
     autoSync: true,
     lastSyncedAt: null,
     lastDevice: '',
@@ -26,12 +25,15 @@
   let pushDebounceTimer = null;
   let onDataUpdatedCallback = null;
   let isSyncing = false;
+  let evtSource = null;
+  let reconnectTimeout = null;
 
   function loadConfig() {
     try {
       const saved = localStorage.getItem(CONFIG_STORAGE_KEY);
       if (saved) {
-        return Object.assign({}, defaultState, JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        return Object.assign({}, defaultState, parsed);
       }
     } catch (e) {
       console.warn('Bulut yapılandırması yüklenirken hata:', e);
@@ -49,10 +51,14 @@
     updateUIBadge();
   }
 
+  function getSyncRoom() {
+    return (config.syncRoom && config.syncRoom.trim()) || DEFAULT_SYNC_ROOM;
+  }
+
   // Cihaz Bilgisi Tespiti
   function getDeviceName() {
     const ua = navigator.userAgent || '';
-    if (/android/i.test(ua)) return 'Samsung / Android Telefon';
+    if (/android/i.test(ua)) return 'Android Telefon';
     if (/iphone|ipad|ipod/i.test(ua)) return 'iPhone / iPad';
     if (/windows/i.test(ua)) return 'Windows Bilgisayar';
     if (/macintosh|mac os x/i.test(ua)) return 'Mac Bilgisayar';
@@ -63,39 +69,20 @@
   function checkUrlParams() {
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const provider = urlParams.get('sync_provider');
-      const firebaseUrl = urlParams.get('sync_fb');
-      const customUrl = urlParams.get('sync_custom');
-      const customKey = urlParams.get('sync_key');
+      const room = urlParams.get('sync_room') || urlParams.get('oda') || urlParams.get('sync_code');
 
-      let updated = false;
-
-      if (provider) {
-        config.provider = provider;
-        updated = true;
-      }
-      if (firebaseUrl) {
-        config.firebaseUrl = decodeURIComponent(firebaseUrl);
-        config.provider = 'firebase';
-        updated = true;
-      }
-      if (customUrl) {
-        config.customUrl = decodeURIComponent(customUrl);
-        config.provider = 'custom';
-        updated = true;
-      }
-      if (customKey) {
-        config.customKey = decodeURIComponent(customKey);
-        updated = true;
-      }
-
-      if (updated) {
+      if (room && room.trim()) {
+        const cleanRoom = room.trim();
+        config.syncRoom = cleanRoom;
+        config.provider = 'direct';
         saveConfig(config);
-        // URL'i temizle (sayfa yenilendiğinde tekrar parametre aramasın)
+
+        // URL'i temizle
         if (window.history && window.history.replaceState) {
           const cleanUrl = window.location.pathname + window.location.hash;
           window.history.replaceState({}, document.title, cleanUrl);
         }
+        showToastMessage(`🔗 Eşitleme Odası Aktifleştirildi: ${cleanRoom}`);
         return true;
       }
     } catch (e) {
@@ -104,76 +91,59 @@
     return false;
   }
 
-  // Telefon / Diğer Cihazlar İçin Eşleştirme Linki Üret
+  // Telefon / Diğer Cihazlar İçin Eşleştirme Linki
   function getShareUrl() {
     const base = window.location.origin + window.location.pathname;
-    const params = new URLSearchParams();
-
-    params.set('sync_provider', config.provider);
-    if (config.provider === 'firebase' && config.firebaseUrl) {
-      params.set('sync_fb', config.firebaseUrl);
-    } else if (config.provider === 'custom' && config.customUrl) {
-      params.set('sync_custom', config.customUrl);
-      if (config.customKey) params.set('sync_key', config.customKey);
-    }
-
-    return `${base}?${params.toString()}`;
+    const room = getSyncRoom();
+    return `${base}?sync_room=${encodeURIComponent(room)}`;
   }
 
-  // QR Kod Görsel URL'si
+  // QR Kod Görsel URL'si (Telefon Kamerasıyla Okutmak İçin)
   function getQrCodeUrl() {
     const shareUrl = getShareUrl();
-    return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(shareUrl)}`;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(shareUrl)}`;
   }
 
-  // Sağlayıcıya Göre Veri Çekme (PULL)
+  // Buluttan En Güncel Veriyi Çek (PULL)
   async function fetchFromCloud() {
     if (!navigator.onLine) {
       throw new Error('İnternet bağlantısı yok');
     }
 
-    if (config.provider === 'puter') {
-      if (!window.puter) {
-        throw new Error('Puter bulut kütüphanesi yüklenemedi');
-      }
-      const isSignedIn = await window.puter.auth.isSignedIn();
-      if (!isSignedIn) {
-        return null; // Henüz giriş yapılmamış
-      }
-      const data = await window.puter.kv.get('ders_takip_pro_data');
-      if (!data) return null;
-      return typeof data === 'string' ? JSON.parse(data) : data;
+    const room = getSyncRoom();
+    const pollUrl = `${SYNC_SERVER}/${encodeURIComponent(room)}/json?poll=1&since=all`;
+
+    const res = await fetch(pollUrl, { cache: 'no-cache' });
+    if (!res.ok) {
+      throw new Error(`Bulut sunucusu yanıt vermedi: ${res.status}`);
     }
 
-    if (config.provider === 'firebase') {
-      if (!config.firebaseUrl) {
-        return null; // Henüz URL tanımlanmamış
-      }
-      let url = config.firebaseUrl.trim();
-      if (!url.endsWith('.json')) {
-        url = url.replace(/\/+$/, '') + '/ders_data.json';
-      }
-      const res = await fetch(url, { cache: 'no-cache' });
-      if (!res.ok) {
-        throw new Error(`Firebase yanıt hatası: ${res.status}`);
-      }
-      const data = await res.json();
-      return data;
+    const text = await res.text();
+    if (!text || !text.trim()) {
+      return null;
     }
 
-    if (config.provider === 'custom') {
-      if (!config.customUrl) return null;
-      const headers = { 'Content-Type': 'application/json' };
-      if (config.customKey) headers['Authorization'] = `Bearer ${config.customKey}`;
-      const res = await fetch(config.customUrl, { headers, cache: 'no-cache' });
-      if (!res.ok) throw new Error(`Özel bulut yanıt hatası: ${res.status}`);
-      return await res.json();
+    const lines = text.trim().split('\n').filter(Boolean);
+    // En son mesaja doğru geriye doğru tara
+    for (let i = lines.length - 1; i >= 0; i--) {
+      try {
+        const msg = JSON.parse(lines[i]);
+        if (msg.attachment && msg.attachment.url) {
+          const fileRes = await fetch(msg.attachment.url, { cache: 'no-cache' });
+          if (fileRes.ok) {
+            const data = await fileRes.json();
+            return data;
+          }
+        }
+      } catch (e) {
+        // Devam et
+      }
     }
 
     return null;
   }
 
-  // Sağlayıcıya Göre Veri Gönderme (PUSH)
+  // Buluta Veri Gönderme (PUSH)
   async function pushToCloud(data) {
     if (!navigator.onLine) {
       throw new Error('İnternet bağlantısı yok');
@@ -184,48 +154,106 @@
     data._updatedAt = Date.now();
     data._lastDevice = getDeviceName();
 
-    if (config.provider === 'puter') {
-      if (!window.puter) throw new Error('Puter kütüphanesi hazır değil');
-      const isSignedIn = await window.puter.auth.isSignedIn();
-      if (!isSignedIn) return false;
-      await window.puter.kv.set('ders_takip_pro_data', JSON.stringify(data));
-      return true;
+    const room = getSyncRoom();
+    const postUrl = `${SYNC_SERVER}/${encodeURIComponent(room)}`;
+
+    const jsonStr = JSON.stringify(data);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+
+    const res = await fetch(postUrl, {
+      method: 'POST',
+      headers: {
+        'Filename': 'ders_data.json',
+        'Title': `DersTakip: ${data._lastDevice || 'Cihaz'} Güncellemesi`,
+        'Priority': 'low',
+        'Tags': 'cloud,sync'
+      },
+      body: blob
+    });
+
+    if (!res.ok) {
+      throw new Error(`Buluta yazılamadı: ${res.status}`);
     }
 
-    if (config.provider === 'firebase') {
-      if (!config.firebaseUrl) return false;
-      let url = config.firebaseUrl.trim();
-      if (!url.endsWith('.json')) {
-        url = url.replace(/\/+$/, '') + '/ders_data.json';
-      }
-      const res = await fetch(url, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      if (!res.ok) {
-        throw new Error(`Firebase yazma hatası: ${res.status}`);
-      }
-      return true;
-    }
-
-    if (config.provider === 'custom') {
-      if (!config.customUrl) return false;
-      const headers = { 'Content-Type': 'application/json' };
-      if (config.customKey) headers['Authorization'] = `Bearer ${config.customKey}`;
-      const res = await fetch(config.customUrl, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify(data)
-      });
-      if (!res.ok) throw new Error(`Özel bulut yazma hatası: ${res.status}`);
-      return true;
-    }
-
-    return false;
+    config.lastSyncedAt = data._updatedAt;
+    config.lastDevice = data._lastDevice;
+    saveConfig(config);
+    return true;
   }
 
-  // İki Yönlü Eşitleme (Zaman Damgasına Göre En Yeni Veriyi Seçme)
+  // Canlı Olay Dinleyici (EventSource / SSE)
+  function startLiveListener() {
+    if (typeof window.EventSource === 'undefined') return;
+
+    if (evtSource) {
+      try { evtSource.close(); } catch (e) {}
+      evtSource = null;
+    }
+
+    const room = getSyncRoom();
+    const sseUrl = `${SYNC_SERVER}/${encodeURIComponent(room)}/sse`;
+
+    try {
+      evtSource = new EventSource(sseUrl);
+
+      evtSource.onmessage = async (evt) => {
+        if (!evt.data) return;
+        try {
+          const msg = JSON.parse(evt.data);
+          if (msg.event === 'message' && msg.attachment && msg.attachment.url) {
+            // Başka bir cihazdan gelen yeni bir dosya var!
+            const fileRes = await fetch(msg.attachment.url, { cache: 'no-cache' });
+            if (!fileRes.ok) return;
+            const cloudData = await fileRes.json();
+            if (!cloudData || !cloudData._updatedAt) return;
+
+            // Yereldeki veriyi kontrol et
+            const localDataStr = localStorage.getItem(DATA_STORAGE_KEY);
+            let localTime = 0;
+            if (localDataStr) {
+              try {
+                const localData = JSON.parse(localDataStr);
+                localTime = Number(localData._updatedAt) || 0;
+              } catch (e) {}
+            }
+
+            // Eğer buluttaki veri yerelden yeniyse anında güncelle!
+            if (Number(cloudData._updatedAt) > localTime) {
+              localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(cloudData));
+              config.lastSyncedAt = Number(cloudData._updatedAt);
+              config.lastDevice = cloudData._lastDevice || 'Diğer Cihaz';
+              saveConfig(config);
+              updateUIBadge('success');
+
+              if (typeof onDataUpdatedCallback === 'function') {
+                onDataUpdatedCallback(cloudData);
+              }
+
+              const deviceLabel = cloudData._lastDevice || 'Diğer cihaz';
+              showToastMessage(`⚡ ${deviceLabel} tarafından yapılan değişiklikler anında aktarıldı!`);
+            }
+          }
+        } catch (e) {
+          console.warn('Canlı bildirim işlenirken hata:', e);
+        }
+      };
+
+      evtSource.onerror = () => {
+        // Otomatik yeniden bağlanma
+        if (reconnectTimeout) clearTimeout(reconnectTimeout);
+        reconnectTimeout = setTimeout(() => {
+          if (navigator.onLine && (!evtSource || evtSource.readyState === EventSource.CLOSED)) {
+            startLiveListener();
+          }
+        }, 5000);
+      };
+
+    } catch (e) {
+      console.warn('Canlı dinleyici başlatılamadı:', e);
+    }
+  }
+
+  // İki Yönlü Eşitleme
   async function sync(isManual = false) {
     if (isSyncing) return;
     if (!navigator.onLine) {
@@ -273,13 +301,13 @@
         return;
       }
 
-      // Durum 3: Hem yerelde hem bulutta veri var -> EN SON GİRİLENE GÖRE DÜZENLE!
+      // Durum 3: Hem yerelde hem bulutta veri var -> EN SON DEĞİŞTİRİLENİ AL!
       if (cloudData && localData) {
         const cloudTime = Number(cloudData._updatedAt) || 0;
         const localTime = Number(localData._updatedAt) || 0;
 
         if (cloudTime > localTime) {
-          // Buluttaki veri daha yeni! (Örn: Diğer cihazdan son girilen ders)
+          // Buluttaki veri daha yeni!
           localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(cloudData));
           config.lastSyncedAt = cloudTime;
           config.lastDevice = cloudData._lastDevice || 'Diğer Cihaz';
@@ -291,7 +319,7 @@
           const timeStr = new Date(cloudTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
           showToastMessage(`☁️ Güncel veriler yüklendi (${cloudData._lastDevice || 'Diğer cihaz'} - ${timeStr})`);
         } else if (localTime > cloudTime) {
-          // Yereldeki veri daha yeni! (Bu cihazda yeni işlem yapılmış)
+          // Yereldeki veri daha yeni -> Buluta gönder
           await pushToCloud(localData);
           config.lastSyncedAt = localTime;
           config.lastDevice = getDeviceName();
@@ -299,7 +327,7 @@
           updateUIBadge('success');
           if (isManual) showToastMessage('En son değişiklikler buluta aktarıldı');
         } else {
-          // Birebir eşit
+          // Eşit
           config.lastSyncedAt = cloudTime || Date.now();
           saveConfig(config);
           updateUIBadge('success');
@@ -338,7 +366,7 @@
         console.warn('Otomatik bulut kaydı hatası:', e);
         updateUIBadge('error', e.message);
       }
-    }, 600);
+    }, 500);
   }
 
   // Üst Bardaki Rozeti Güncelle
@@ -370,7 +398,7 @@
         icon.classList.add('spin');
       }
       text.textContent = 'Eşitleniyor...';
-      btn.title = 'Bulutla çift yönlü senkronizasyon yapılıyor...';
+      btn.title = 'Telefon ve PC arasında canlı senkronizasyon yapılıyor...';
       return;
     }
 
@@ -381,16 +409,7 @@
       if (dot) dot.className = 'status-dot red';
       if (icon) icon.textContent = '⚠️';
       text.textContent = 'Bulut Hatası';
-      btn.title = errorMsg ? `Hata: ${errorMsg}` : 'Bulut bağlantısı kurulamadı. Ayarları kontrol edin.';
-      return;
-    }
-
-    if (currentStatus === 'not_connected') {
-      btn.classList.add('unsynced');
-      if (dot) dot.className = 'status-dot yellow';
-      if (icon) icon.textContent = '☁️';
-      text.textContent = 'Bulut: Bağlan';
-      btn.title = 'Telefon ve iPad arasında canlı eşitleme için lütfen Google ile bağlanın.';
+      btn.title = errorMsg ? `Hata: ${errorMsg}` : 'Bulut bağlantısı kurulamadı.';
       return;
     }
 
@@ -399,16 +418,16 @@
       if (dot) dot.className = 'status-dot green';
       if (icon) icon.textContent = '☁️';
       const timeStr = new Date(config.lastSyncedAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-      text.textContent = `Bulut (${timeStr})`;
-      btn.title = `Tüm cihazlar senkronize! Son eşitleme: ${timeStr} (${config.lastDevice || ''})`;
+      text.textContent = `Canlı Bulut (${timeStr})`;
+      btn.title = `Telefon ve PC senkronize! Son işlem: ${timeStr} (${config.lastDevice || ''})`;
       return;
     }
 
-    // Boş / Henüz ayarlanmadı
-    if (dot) dot.className = 'status-dot yellow';
+    // Boş / Hazır
+    if (dot) dot.className = 'status-dot green';
     if (icon) icon.textContent = '☁️';
-    text.textContent = 'Bulut Eşitle';
-    btn.title = 'Cihazlar arası bulut senkronizasyonunu başlatmak için tıklayın.';
+    text.textContent = 'Canlı Bulut';
+    btn.title = 'Telefon ve PC arasında anlık eşitleme aktif.';
   }
 
   // Toast Bildirim Göster
@@ -425,6 +444,15 @@
     }
   }
 
+  // Eşitleme Odasını Değiştir
+  function setSyncRoom(newRoom) {
+    if (!newRoom || !newRoom.trim()) return;
+    config.syncRoom = newRoom.trim();
+    saveConfig(config);
+    startLiveListener();
+    sync(true);
+  }
+
   // Başlangıç Kurulumu
   function init(options = {}) {
     if (options.onDataUpdated) {
@@ -434,24 +462,15 @@
     checkUrlParams();
     updateUIBadge();
 
-    // Oturum durumunu kontrol et ve eşitle
-    if (config.provider === 'puter' && window.puter && window.puter.auth) {
-      window.puter.auth.isSignedIn().then((signedIn) => {
-        if (!signedIn) {
-          updateUIBadge('not_connected');
-        } else {
-          sync(false);
-        }
-      }).catch(() => {
-        sync(false);
-      });
-    } else {
-      setTimeout(() => {
-        sync(false);
-      }, 800);
-    }
+    // Canlı dinleyiciyi başlat
+    startLiveListener();
 
-    // Sekmeye dönüldüğünde veya telefon ekranı açıldığında otomatik kontrol et
+    // Başlangıçta eşitle
+    setTimeout(() => {
+      sync(false);
+    }, 600);
+
+    // Sekmeye dönüldüğünde veya ekran açıldığında hemen kontrol et
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         sync(false);
@@ -462,9 +481,10 @@
       sync(false);
     });
 
-    // İnternet bağlantısı durumu değiştiğinde
+    // İnternet bağlantısı geldiğinde
     window.addEventListener('online', () => {
-      showToastMessage('İnternet bağlantısı aktif, bulut eşitleniyor...');
+      showToastMessage('İnternet aktif, cihazlar senkronize ediliyor...');
+      startLiveListener();
       sync(false);
     });
 
@@ -472,21 +492,37 @@
       updateUIBadge('offline');
     });
 
-    // Periyodik sessiz kontrol (30 saniyede bir)
+    // Periyodik sessiz kontrol (25 saniyede bir)
     setInterval(() => {
       if (document.visibilityState === 'visible' && navigator.onLine) {
         sync(false);
       }
-    }, 30000);
+    }, 25000);
   }
 
   // Global Dışa Aktarım
   window.CloudSync = {
     init,
     sync,
+    syncNow: async (data, callback) => {
+      await sync(true);
+      if (typeof callback === 'function') {
+        const localDataStr = localStorage.getItem(DATA_STORAGE_KEY);
+        let resData = null;
+        if (localDataStr) {
+          try { resData = JSON.parse(localDataStr); } catch (e) {}
+        }
+        callback({ success: true, data: resData });
+      }
+    },
+    onDataPulled: (cb) => {
+      onDataUpdatedCallback = cb;
+    },
     schedulePush,
     getConfig: () => Object.assign({}, config),
     saveConfig,
+    setSyncRoom,
+    getSyncRoom,
     getShareUrl,
     getQrCodeUrl,
     getDeviceName
