@@ -143,12 +143,57 @@
     return null;
   }
 
+  // Bulut Verisini Onar ve Eksiksiz Kıl
+  function repairAndNormalize(data) {
+    if (!data || !data.periods) return data;
+    const initPeriods = window.INITIAL_DERS_DATA?.periods || [];
+    initPeriods.forEach(initP => {
+      let p = data.periods.find(x => x.id === initP.id);
+      if (!p) {
+        p = JSON.parse(JSON.stringify(initP));
+        data.periods.push(p);
+      } else {
+        if ((!p.lessons || p.lessons.length === 0) && initP.lessons && initP.lessons.length > 0) {
+          p.lessons = JSON.parse(JSON.stringify(initP.lessons));
+        }
+        if ((!p.payments || p.payments.length === 0) && initP.payments && initP.payments.length > 0) {
+          p.payments = JSON.parse(JSON.stringify(initP.payments));
+        }
+        if (p.id === '2026-2027' && (!p.myPayments || p.myPayments.length < (initP.myPayments || []).length)) {
+          p.myPayments = JSON.parse(JSON.stringify(initP.myPayments));
+        }
+      }
+    });
+    return data;
+  }
+
+  // Bulut Verisinin Güvenli ve Tam Olduğunu Doğrula
+  function isCloudDataSafe(cloudData, localData) {
+    if (!cloudData || typeof cloudData !== 'object') return false;
+    if (!Array.isArray(cloudData.periods) || cloudData.periods.length === 0) return false;
+
+    const cloudLessons = cloudData.periods.reduce((sum, p) => sum + (Array.isArray(p.lessons) ? p.lessons.length : 0), 0);
+
+    // Eğer yerelde 50'den fazla ders varken buluttan 10'dan az ders geliyorsa, yerel veriyi koru!
+    if (localData && Array.isArray(localData.periods)) {
+      const localLessons = localData.periods.reduce((sum, p) => sum + (Array.isArray(p.lessons) ? p.lessons.length : 0), 0);
+      if (localLessons >= 50 && cloudLessons < 10) {
+        console.warn('Buluttan gelen veri yereldeki dersleri silecek kadar eksik. Yerel veri korundu!');
+        return false;
+      }
+    }
+    return true;
+  }
+
   // Buluta Veri Gönderme (PUSH)
   async function pushToCloud(data) {
     if (!navigator.onLine) {
       throw new Error('İnternet bağlantısı yok');
     }
     if (!data) return false;
+
+    // Giden veriyi her zaman tam ve sağlam kıl
+    data = repairAndNormalize(data);
 
     // Zaman damgası ve cihaz adını ekle
     data._updatedAt = Date.now();
@@ -204,18 +249,30 @@
             // Başka bir cihazdan gelen yeni bir dosya var!
             const fileRes = await fetch(msg.attachment.url, { cache: 'no-cache' });
             if (!fileRes.ok) return;
-            const cloudData = await fileRes.json();
+            let cloudData = await fileRes.json();
             if (!cloudData || !cloudData._updatedAt) return;
 
             // Yereldeki veriyi kontrol et
             const localDataStr = localStorage.getItem(DATA_STORAGE_KEY);
             let localTime = 0;
+            let localData = null;
             if (localDataStr) {
               try {
-                const localData = JSON.parse(localDataStr);
+                localData = JSON.parse(localDataStr);
                 localTime = Number(localData._updatedAt) || 0;
               } catch (e) {}
             }
+
+            // Güvenlik doğrulaması: eksik veya boş veriyle yerel verinin ezilmesini engelle
+            if (!isCloudDataSafe(cloudData, localData)) {
+              if (localData) {
+                await pushToCloud(localData);
+              }
+              return;
+            }
+
+            // Gelen veriyi tam ve sağlam kıl
+            cloudData = repairAndNormalize(cloudData);
 
             // Eğer buluttaki veri yerelden yeniyse anında güncelle!
             if (Number(cloudData._updatedAt) > localTime) {
@@ -272,7 +329,12 @@
         try { localData = JSON.parse(localDataStr); } catch (e) {}
       }
 
-      const cloudData = await fetchFromCloud();
+      // Yerel veri varsa mutlaka tam ve eksiksiz tut
+      if (localData) {
+        localData = repairAndNormalize(localData);
+      }
+
+      let cloudData = await fetchFromCloud();
 
       // Durum 1: Bulutta henüz veri yok, yerelde varsa buluta gönder
       if (!cloudData && localData) {
@@ -288,6 +350,7 @@
 
       // Durum 2: Bulutta veri var, yerelde yoksa doğrudan buluttakini al
       if (cloudData && !localData) {
+        cloudData = repairAndNormalize(cloudData);
         localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(cloudData));
         config.lastSyncedAt = cloudData._updatedAt || Date.now();
         config.lastDevice = cloudData._lastDevice || 'Bulut';
@@ -303,6 +366,20 @@
 
       // Durum 3: Hem yerelde hem bulutta veri var -> EN SON DEĞİŞTİRİLENİ AL!
       if (cloudData && localData) {
+        // Güvenlik doğrulaması: eksik veya bozuk bulut verisiyle yereli ezme
+        if (!isCloudDataSafe(cloudData, localData)) {
+          console.warn('Buluttaki veri yerelden eksik, yerel tam veri buluta aktarılıyor...');
+          await pushToCloud(localData);
+          config.lastSyncedAt = Date.now();
+          config.lastDevice = getDeviceName();
+          saveConfig(config);
+          updateUIBadge('success');
+          isSyncing = false;
+          return;
+        }
+
+        cloudData = repairAndNormalize(cloudData);
+
         const cloudTime = Number(cloudData._updatedAt) || 0;
         const localTime = Number(localData._updatedAt) || 0;
 

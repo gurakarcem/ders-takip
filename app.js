@@ -85,12 +85,34 @@ function loadData() {
     }
   }
 
+  // GEÇMİŞ VE MEVCUT VERİ GÜVENCESİ / KURTARMA (Data Recovery & Integrity)
+  // Eğer tarayıcıda eski yıllara (2025-2026, 2024-2025) ait dersler veya ödemeler boş kalmışsa
+  // INITIAL_DERS_DATA'dan 562 dersin tamamını eksiksiz olarak anında geri yükle ve onar!
+  if (appState.data && appState.data.periods && window.INITIAL_DERS_DATA) {
+    const initPeriods = window.INITIAL_DERS_DATA.periods || [];
+    initPeriods.forEach(initP => {
+      let existingP = appState.data.periods.find(p => p.id === initP.id);
+      if (!existingP) {
+        existingP = JSON.parse(JSON.stringify(initP));
+        appState.data.periods.push(existingP);
+      } else {
+        if ((!existingP.lessons || existingP.lessons.length === 0) && initP.lessons && initP.lessons.length > 0) {
+          existingP.lessons = JSON.parse(JSON.stringify(initP.lessons));
+        }
+        if ((!existingP.payments || existingP.payments.length === 0) && initP.payments && initP.payments.length > 0) {
+          existingP.payments = JSON.parse(JSON.stringify(initP.payments));
+        }
+        if (existingP.id === '2026-2027' && (!existingP.myPayments || existingP.myPayments.length < (initP.myPayments || []).length)) {
+          existingP.myPayments = JSON.parse(JSON.stringify(initP.myPayments));
+        }
+      }
+    });
+  }
+
   // Zaman damgası ve cihaz kontrolü
   if (appState.data) {
-    if (!appState.data._updatedAt) {
-      // Önemli: Henüz zaman damgası olmayan eski yerel veriler için 0 atanır;
-      // böylece buluttaki güncel derslerin üzerine yazılması engellenir!
-      appState.data._updatedAt = 0;
+    if (!appState.data._updatedAt || appState.data._updatedAt === 0) {
+      appState.data._updatedAt = Date.now();
     }
     if (!appState.data._lastDevice && window.CloudSync) {
       appState.data._lastDevice = window.CloudSync.getDeviceName();
@@ -129,7 +151,7 @@ function saveData() {
 }
 
 function resetToDefaultData() {
-  if (confirm("Tüm değişiklikler sıfırlanacak ve dosyanızdaki orijinal veriler geri yüklenecek. Emin misiniz?")) {
+  if (confirm("Tüm değişiklikler sıfırlanacak ve dosyanızdaki orijinal veriler (3 yılın 562 dersi) geri yüklenecek. Emin misiniz?")) {
     appState.data = JSON.parse(JSON.stringify(window.INITIAL_DERS_DATA));
     appState.activePeriodId = appState.data.activePeriodId || "2026-2027";
     if (appState.data.periods) {
@@ -142,7 +164,7 @@ function resetToDefaultData() {
     saveData();
     populatePeriodSelect();
     renderApp();
-    showToast("Orijinal veriler başarıyla geri yüklendi!");
+    showToast("Tüm yıllara ait orijinal veriler başarıyla geri yüklendi!");
   }
 }
 
@@ -152,35 +174,40 @@ function getActivePeriod() {
   return appState.data.periods.find(p => p.id === appState.activePeriodId) || appState.data.periods[0];
 }
 
-// Dersler dizisini oluştur (eğer yoksa geçmiş tarihlerden sentezle)
+// Dersler dizisini oluştur (eğer yoksa INITIAL_DERS_DATA'dan veya geçmiş tarihlerden sentezle)
 function ensureLessonsArray(period) {
   if (!period) return;
   if (!period.lessons || period.lessons.length === 0) {
-    period.lessons = [];
-    const datesMap = period.lessonDates || {};
+    const initPer = (window.INITIAL_DERS_DATA?.periods || []).find(p => p.id === period.id);
+    if (initPer && initPer.lessons && initPer.lessons.length > 0) {
+      period.lessons = JSON.parse(JSON.stringify(initPer.lessons));
+    } else {
+      period.lessons = [];
+      const datesMap = period.lessonDates || {};
 
-    let counter = 1;
-    period.students.forEach(s => {
-      const dates = datesMap[s.id] || [];
-      dates.forEach(d => {
-        const mIdx = parseInt(d.split("-")[1], 10);
-        const mName = MONTH_MAP[mIdx] || "Eylül";
-        const rate = s.rate || 3000;
+      let counter = 1;
+      (period.students || []).forEach(s => {
+        const dates = datesMap[s.id] || [];
+        dates.forEach(d => {
+          const mIdx = parseInt(d.split("-")[1], 10);
+          const mName = MONTH_MAP[mIdx] || "Eylül";
+          const rate = s.rate || 3000;
 
-        period.lessons.push({
-          id: "les_" + counter++,
-          studentId: s.id,
-          date: d,
-          time: "14:00",
-          duration: 60,
-          month: mName,
-          rate: rate,
-          isPaid: true,
-          paidDate: d,
-          note: ""
+          period.lessons.push({
+            id: "les_" + period.id + "_" + counter++,
+            studentId: s.id,
+            date: d,
+            time: "14:00",
+            duration: 60,
+            month: mName,
+            rate: rate,
+            isPaid: true,
+            paidDate: d,
+            note: "Ders tamamlandı"
+          });
         });
       });
-    });
+    }
   } else {
     // Mevcut derslerde saat ve süre yoksa varsayılan ata
     period.lessons.forEach(l => {
@@ -190,27 +217,32 @@ function ensureLessonsArray(period) {
   }
 }
 
-// Ödemeler dizisini garanti et (eğer yoksa geçmiş ödenmiş derslerden sentezle)
+// Ödemeler dizisini garanti et (eğer yoksa INITIAL_DERS_DATA veya ödenmiş derslerden sentezle)
 function ensurePaymentsArray(period) {
   if (!period) return;
-  if (!period.payments) {
-    period.payments = [];
-    if (period.lessons && period.lessons.length > 0) {
-      let counter = 1;
-      period.lessons.forEach(l => {
-        if (l.isPaid) {
-          period.payments.push({
-            id: "pay_" + (l.id || counter++),
-            studentId: l.studentId,
-            date: l.paidDate || l.date,
-            amount: parseFloat(l.rate) || 0,
-            type: "Banka Havalesi / EFT",
-            note: l.note ? `Ders ödemesi (${l.note})` : "Ders ödemesi",
-            lessonId: l.id,
-            createdAt: Date.now()
-          });
-        }
-      });
+  if (!period.payments || period.payments.length === 0) {
+    const initPer = (window.INITIAL_DERS_DATA?.periods || []).find(p => p.id === period.id);
+    if (initPer && initPer.payments && initPer.payments.length > 0) {
+      period.payments = JSON.parse(JSON.stringify(initPer.payments));
+    } else {
+      period.payments = [];
+      if (period.lessons && period.lessons.length > 0) {
+        let counter = 1;
+        period.lessons.forEach(l => {
+          if (l.isPaid) {
+            period.payments.push({
+              id: "pay_" + period.id + "_" + (l.id || counter++),
+              studentId: l.studentId,
+              date: l.paidDate || l.date,
+              amount: parseFloat(l.rate) || 0,
+              type: "Banka Havalesi / EFT",
+              note: l.note ? `Ders ödemesi (${l.note})` : "Ders ödemesi",
+              lessonId: l.id,
+              createdAt: new Date(l.paidDate || l.date).getTime() || Date.now()
+            });
+          }
+        });
+      }
     }
   }
 }
@@ -234,18 +266,12 @@ function ensureMyPaymentsArray(period) {
   if (!period.myPayments || !Array.isArray(period.myPayments)) {
     if (initPer && Array.isArray(initPer.myPayments) && initPer.myPayments.length > 0) {
       period.myPayments = JSON.parse(JSON.stringify(initPer.myPayments));
+    } else if (period.id === '2026-2027') {
+      period.myPayments = (initPer && initPer.myPayments) ? JSON.parse(JSON.stringify(initPer.myPayments)) : [];
     } else {
-      period.myPayments = [
-        { id: "mypay_1", date: "2026-10-24", title: "Garanti BBVA Kredi Kartı", amount: 14500, category: "Kredi Kartı", status: "unpaid", paidDate: "", note: "Son ödeme günü 24 Ekim" },
-        { id: "mypay_2", date: "2026-10-15", title: "Ev Kirası", amount: 22000, category: "Kira & Aidat", status: "paid", paidDate: "2026-10-15", note: "Ekim ayı ev kirası ev sahibine ödendi" },
-        { id: "mypay_3", date: "2026-10-28", title: "İgdaş Doğalgaz Faturası", amount: 1250, category: "Fatura", status: "unpaid", paidDate: "", note: "Son gün 28 Ekim" },
-        { id: "mypay_4", date: "2026-10-18", title: "Turkcell Telefon & İnternet", amount: 890, category: "Fatura", status: "paid", paidDate: "2026-10-18", note: "Otomatik ödeme talimatı ödendi" },
-        { id: "mypay_5", date: "2026-10-25", title: "Site Aidatı", amount: 1500, category: "Kira & Aidat", status: "unpaid", paidDate: "", note: "Ekim ayı aidatı" },
-        { id: "mypay_6", date: "2026-10-31", title: "Bağkur / SGK Primi", amount: 7800, category: "Sigorta & Vergi", status: "unpaid", paidDate: "", note: "Son gün ay sonu" },
-        { id: "mypay_7", date: "2026-10-12", title: "Yapı Kredi Kredi Taksiti", amount: 6400, category: "Kredi Taksiti", status: "paid", paidDate: "2026-10-12", note: "10/24 taksit ödendi" }
-      ];
+      period.myPayments = [];
     }
-  } else if (period.myPayments.length === 7 && period.myPayments[0].id === "mypay_1") {
+  } else if (period.id === '2026-2027' && period.myPayments.length === 7 && period.myPayments[0].id === "mypay_1") {
     // Otomatik yükseltme: Eski 7 kalemlik veri yerine güncel çok aylı initial_data verisini yükle
     if (initPer && Array.isArray(initPer.myPayments) && initPer.myPayments.length > 7) {
       period.myPayments = JSON.parse(JSON.stringify(initPer.myPayments));
@@ -367,6 +393,7 @@ function calculateTotals(period) {
     avgRate: 0, studentTotals: {}, monthTotals: {}
   };
 
+  ensureLessonsArray(period);
   ensurePaymentsArray(period);
 
   let totalLessons = 0;
@@ -3770,9 +3797,15 @@ function setupEventListeners() {
         periodSelect.value = appState.activePeriodId;
       } else {
         appState.activePeriodId = e.target.value;
+        const curPeriod = getActivePeriod();
+        if (curPeriod) {
+          ensureLessonsArray(curPeriod);
+          ensurePaymentsArray(curPeriod);
+          ensureMyPaymentsArray(curPeriod);
+        }
         saveData();
         renderApp();
-        showToast("Dönem değiştirildi: " + getActivePeriod().name);
+        showToast("Dönem değiştirildi: " + (curPeriod ? curPeriod.name : ''));
       }
     });
   }

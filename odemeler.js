@@ -78,15 +78,46 @@ function loadData() {
     }
   }
 
+  // GEÇMİŞ VE MEVCUT VERİ GÜVENCESİ / KURTARMA (Data Recovery & Integrity)
+  if (appState.data && appState.data.periods && window.INITIAL_DERS_DATA) {
+    const initPeriods = window.INITIAL_DERS_DATA.periods || [];
+    initPeriods.forEach(initP => {
+      let existingP = appState.data.periods.find(p => p.id === initP.id);
+      if (!existingP) {
+        existingP = JSON.parse(JSON.stringify(initP));
+        appState.data.periods.push(existingP);
+      } else {
+        if ((!existingP.lessons || existingP.lessons.length === 0) && initP.lessons && initP.lessons.length > 0) {
+          existingP.lessons = JSON.parse(JSON.stringify(initP.lessons));
+        }
+        if ((!existingP.payments || existingP.payments.length === 0) && initP.payments && initP.payments.length > 0) {
+          existingP.payments = JSON.parse(JSON.stringify(initP.payments));
+        }
+        if (existingP.id === '2026-2027' && (!existingP.myPayments || existingP.myPayments.length < (initP.myPayments || []).length)) {
+          existingP.myPayments = JSON.parse(JSON.stringify(initP.myPayments));
+        }
+      }
+    });
+  }
+
+  if (appState.data) {
+    if (!appState.data._updatedAt || appState.data._updatedAt === 0) {
+      appState.data._updatedAt = Date.now();
+    }
+    if (!appState.data._lastDevice && window.CloudSync) {
+      appState.data._lastDevice = window.CloudSync.getDeviceName();
+    }
+  }
+
   if (appState.data && appState.data.activePeriodId) {
     appState.activePeriodId = appState.data.activePeriodId;
   }
 
   if (appState.data && appState.data.periods) {
     appState.data.periods.forEach(p => {
-      ensureMyPaymentsArray(p);
       ensureLessonsArray(p);
       ensurePaymentsArray(p);
+      ensureMyPaymentsArray(p);
     });
   }
 }
@@ -117,19 +148,12 @@ function ensureMyPaymentsArray(period) {
   if (!period.myPayments || !Array.isArray(period.myPayments)) {
     if (initPer && Array.isArray(initPer.myPayments) && initPer.myPayments.length > 0) {
       period.myPayments = JSON.parse(JSON.stringify(initPer.myPayments));
+    } else if (period.id === '2026-2027') {
+      period.myPayments = (initPer && initPer.myPayments) ? JSON.parse(JSON.stringify(initPer.myPayments)) : [];
     } else {
-      period.myPayments = [
-        { id: "mypay_1", date: "2026-10-24", title: "Garanti BBVA Kredi Kartı", amount: 14500, category: "Kredi Kartı", status: "unpaid", paidDate: "", note: "Son ödeme günü 24 Ekim" },
-        { id: "mypay_2", date: "2026-10-15", title: "Ev Kirası", amount: 22000, category: "Kira & Aidat", status: "paid", paidDate: "2026-10-15", note: "Ekim ayı ev kirası ev sahibine ödendi" },
-        { id: "mypay_3", date: "2026-10-28", title: "İgdaş Doğalgaz Faturası", amount: 1250, category: "Fatura", status: "unpaid", paidDate: "", note: "Son gün 28 Ekim" },
-        { id: "mypay_4", date: "2026-10-18", title: "Turkcell Telefon & İnternet", amount: 890, category: "Fatura", status: "paid", paidDate: "2026-10-18", note: "Otomatik ödeme talimatı ödendi" },
-        { id: "mypay_5", date: "2026-10-25", title: "Site Aidatı", amount: 1500, category: "Kira & Aidat", status: "unpaid", paidDate: "", note: "Ekim ayı aidatı" },
-        { id: "mypay_6", date: "2026-10-31", title: "Bağkur / SGK Primi", amount: 7800, category: "Sigorta & Vergi", status: "unpaid", paidDate: "", note: "Son gün ay sonu" },
-        { id: "mypay_7", date: "2026-10-12", title: "Yapı Kredi Kredi Taksiti", amount: 6400, category: "Kredi Taksiti", status: "paid", paidDate: "2026-10-12", note: "10/24 taksit ödendi" }
-      ];
+      period.myPayments = [];
     }
-  } else if (period.myPayments.length === 7 && period.myPayments[0].id === "mypay_1") {
-    // Eski varsayılan veriyi güncel çok aylı initial_data ile zenginleştir
+  } else if (period.id === '2026-2027' && period.myPayments.length === 7 && period.myPayments[0].id === "mypay_1") {
     if (initPer && Array.isArray(initPer.myPayments) && initPer.myPayments.length > 7) {
       period.myPayments = JSON.parse(JSON.stringify(initPer.myPayments));
     }
@@ -138,12 +162,26 @@ function ensureMyPaymentsArray(period) {
 
 function ensureLessonsArray(period) {
   if (!period) return;
-  if (!period.lessons) period.lessons = [];
+  if (!period.lessons || period.lessons.length === 0) {
+    const initPer = (window.INITIAL_DERS_DATA?.periods || []).find(p => p.id === period.id);
+    if (initPer && initPer.lessons && initPer.lessons.length > 0) {
+      period.lessons = JSON.parse(JSON.stringify(initPer.lessons));
+    } else {
+      period.lessons = [];
+    }
+  }
 }
 
 function ensurePaymentsArray(period) {
   if (!period) return;
-  if (!period.payments) period.payments = [];
+  if (!period.payments || period.payments.length === 0) {
+    const initPer = (window.INITIAL_DERS_DATA?.periods || []).find(p => p.id === period.id);
+    if (initPer && initPer.payments && initPer.payments.length > 0) {
+      period.payments = JSON.parse(JSON.stringify(initPer.payments));
+    } else {
+      period.payments = [];
+    }
+  }
 }
 
 // --------------------------------------------------------------------------
