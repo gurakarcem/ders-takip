@@ -25,6 +25,7 @@
   let pushDebounceTimer = null;
   let onDataUpdatedCallback = null;
   let isSyncing = false;
+  let syncFailCount = 0;
   let evtSource = null;
   let reconnectTimeout = null;
 
@@ -113,7 +114,16 @@
     const room = getSyncRoom();
     const pollUrl = `${SYNC_SERVER}/${encodeURIComponent(room)}/json?poll=1&since=all`;
 
-    const res = await fetch(pollUrl, { cache: 'no-cache' });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    let res;
+    try {
+      res = await fetch(pollUrl, { cache: 'no-cache', signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
     if (!res.ok) {
       throw new Error(`Bulut sunucusu yanıt vermedi: ${res.status}`);
     }
@@ -124,12 +134,18 @@
     }
 
     const lines = text.trim().split('\n').filter(Boolean);
-    // En son mesaja doğru geriye doğru tara
-    for (let i = lines.length - 1; i >= 0; i--) {
+    // En son 5 mesaja kadar geriye doğru tara (50 istek birden yapıp rate limite takılmamak için)
+    let checkedCount = 0;
+    for (let i = lines.length - 1; i >= 0 && checkedCount < 5; i--) {
       try {
         const msg = JSON.parse(lines[i]);
         if (msg.attachment && msg.attachment.url) {
-          const fileRes = await fetch(msg.attachment.url, { cache: 'no-cache' });
+          checkedCount++;
+          let attachUrl = msg.attachment.url;
+          if (attachUrl.startsWith('http://')) {
+            attachUrl = 'https://' + attachUrl.slice(7);
+          }
+          const fileRes = await fetch(attachUrl, { cache: 'no-cache' });
           if (fileRes.ok) {
             const data = await fileRes.json();
             return data;
@@ -143,7 +159,7 @@
     return null;
   }
 
-  // Bulut Verisini Onar ve Eksiksiz Kıl
+  // Bulut Verisini Onar ve Eksiksiz Kıl (Kullanıcının girmediği faturaları ASLA otomatik ekleme)
   function repairAndNormalize(data) {
     if (!data || !data.periods) return data;
     const initPeriods = window.INITIAL_DERS_DATA?.periods || [];
@@ -159,9 +175,15 @@
         if ((!p.payments || p.payments.length === 0) && initP.payments && initP.payments.length > 0) {
           p.payments = JSON.parse(JSON.stringify(initP.payments));
         }
-        if (p.id === '2026-2027' && (!p.myPayments || p.myPayments.length < (initP.myPayments || []).length)) {
-          p.myPayments = JSON.parse(JSON.stringify(initP.myPayments));
+        // Kişisel harcamalar: Kullanıcı ne girdiyse SADECE o kalmalı, otomatik sahte fatura eklenmemeli
+        if (!p.myPayments || !Array.isArray(p.myPayments)) {
+          p.myPayments = [];
         }
+        // Sahte/test faturalarını temizle
+        p.myPayments = p.myPayments.filter(pay => {
+          if (!pay || !pay.id) return false;
+          return !/^mypay_(aug|sep|nov)_\d+$/.test(pay.id) && !/^mypay_[1-7]$/.test(pay.id);
+        });
       }
     });
     return data;
@@ -205,19 +227,28 @@
     const jsonStr = JSON.stringify(data);
     const blob = new Blob([jsonStr], { type: 'application/json' });
 
-    const res = await fetch(postUrl, {
-      method: 'POST',
-      headers: {
-        'Filename': 'ders_data.json',
-        'Title': `DersTakip: ${data._lastDevice || 'Cihaz'} Güncellemesi`,
-        'Priority': 'low',
-        'Tags': 'cloud,sync'
-      },
-      body: blob
-    });
+    // HTTP başlıklarında Türkçe/non-ASCII karakter kullanma (ByteString standardı gereği)
+    const headers = {
+      'Filename': 'ders_data.json'
+    };
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    let res;
+    try {
+      res = await fetch(postUrl, {
+        method: 'POST',
+        headers: headers,
+        body: blob,
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!res.ok) {
-      throw new Error(`Buluta yazılamadı: ${res.status}`);
+      throw new Error(`Bulut sunucusu yanıtı: ${res.status}`);
     }
 
     config.lastSyncedAt = data._updatedAt;
@@ -405,6 +436,7 @@
           if (isManual) showToastMessage('En son değişiklikler buluta aktarıldı');
         } else {
           // Eşit
+          syncFailCount = 0;
           config.lastSyncedAt = cloudTime || Date.now();
           saveConfig(config);
           updateUIBadge('success');
@@ -414,9 +446,14 @@
         updateUIBadge('idle');
       }
     } catch (err) {
-      console.warn('Bulut senkronizasyonu sırasında hata:', err);
-      updateUIBadge('error', err.message);
-      if (isManual) showToastMessage(`Senkronizasyon hatası: ${err.message}`);
+      console.warn('Bulut senkronizasyonu uyarısı:', err);
+      syncFailCount++;
+      if (isManual) {
+        updateUIBadge('error', err.message);
+        showToastMessage(`Senkronizasyon hatası: ${err.message}`);
+      } else if (syncFailCount >= 3) {
+        updateUIBadge('error', err.message);
+      }
     } finally {
       isSyncing = false;
     }
@@ -432,6 +469,7 @@
       try {
         const success = await pushToCloud(data);
         if (success) {
+          syncFailCount = 0;
           config.lastSyncedAt = Date.now();
           config.lastDevice = getDeviceName();
           saveConfig(config);
@@ -440,10 +478,24 @@
           updateUIBadge('idle');
         }
       } catch (e) {
-        console.warn('Otomatik bulut kaydı hatası:', e);
-        updateUIBadge('error', e.message);
+        console.warn('Otomatik bulut kaydı uyarısı:', e);
+        syncFailCount++;
+        if (syncFailCount >= 3) {
+          updateUIBadge('error', e.message);
+        } else {
+          // Kısa süre sonra sessizce 1 kez daha dene
+          setTimeout(async () => {
+            try {
+              await pushToCloud(data);
+              syncFailCount = 0;
+              updateUIBadge('success');
+            } catch (retryErr) {
+              console.warn('Yeniden bulut denemesi başarısız:', retryErr);
+            }
+          }, 2500);
+        }
       }
-    }, 500);
+    }, 600);
   }
 
   // Üst Bardaki Rozeti Güncelle

@@ -93,9 +93,14 @@ function loadData() {
         if ((!existingP.payments || existingP.payments.length === 0) && initP.payments && initP.payments.length > 0) {
           existingP.payments = JSON.parse(JSON.stringify(initP.payments));
         }
-        if (existingP.id === '2026-2027' && (!existingP.myPayments || existingP.myPayments.length < (initP.myPayments || []).length)) {
-          existingP.myPayments = JSON.parse(JSON.stringify(initP.myPayments));
+        if (!existingP.myPayments || !Array.isArray(existingP.myPayments)) {
+          existingP.myPayments = [];
         }
+        // Otomatik veya sahte eklenmiş test faturalarını temizle (sadece kullanıcının girdikleri kalır)
+        existingP.myPayments = existingP.myPayments.filter(pay => {
+          if (!pay || !pay.id) return false;
+          return !/^mypay_(aug|sep|nov)_\d+$/.test(pay.id) && !/^mypay_[1-7]$/.test(pay.id);
+        });
       }
     });
   }
@@ -143,21 +148,14 @@ function getActivePeriod() {
 
 function ensureMyPaymentsArray(period) {
   if (!period) return;
-  const initPer = (window.INITIAL_DERS_DATA?.periods || []).find(p => p.id === period.id);
-
   if (!period.myPayments || !Array.isArray(period.myPayments)) {
-    if (initPer && Array.isArray(initPer.myPayments) && initPer.myPayments.length > 0) {
-      period.myPayments = JSON.parse(JSON.stringify(initPer.myPayments));
-    } else if (period.id === '2026-2027') {
-      period.myPayments = (initPer && initPer.myPayments) ? JSON.parse(JSON.stringify(initPer.myPayments)) : [];
-    } else {
-      period.myPayments = [];
-    }
-  } else if (period.id === '2026-2027' && period.myPayments.length === 7 && period.myPayments[0].id === "mypay_1") {
-    if (initPer && Array.isArray(initPer.myPayments) && initPer.myPayments.length > 7) {
-      period.myPayments = JSON.parse(JSON.stringify(initPer.myPayments));
-    }
+    period.myPayments = [];
   }
+  // Sahte/otomatik test faturalarını temizle (sadece kullanıcının girdikleri kalır)
+  period.myPayments = period.myPayments.filter(pay => {
+    if (!pay || !pay.id) return false;
+    return !/^mypay_(aug|sep|nov)_\d+$/.test(pay.id) && !/^mypay_[1-7]$/.test(pay.id);
+  });
 }
 
 function ensureLessonsArray(period) {
