@@ -19,7 +19,7 @@
           "name": "Sarp",
           "grade": "11. Sınıf",
           "note": "Devam eden",
-          "rate": 2500,
+          "rate": 3000,
           "phone": "0532 000 0002"
         },
         {
@@ -51,7 +51,7 @@
           "name": "Melis",
           "grade": "11. Sınıf",
           "note": "Devam eden",
-          "rate": 3125,
+          "rate": 3500,
           "phone": "0532 000 0006"
         },
         {
@@ -59,8 +59,16 @@
           "name": "Eylül",
           "grade": "Lise",
           "note": "Kanada",
-          "rate": 3750,
+          "rate": 4000,
           "phone": "0532 000 0007"
+        },
+        {
+          "id": "maalar_0011",
+          "name": "Maaşlar",
+          "grade": "",
+          "rate": 145000,
+          "phone": "",
+          "note": ""
         }
       ],
       "lessonDates": {
@@ -75,7 +83,9 @@
         ],
         "sarp": [
           "2026-09-27",
-          "2026-10-04"
+          "2026-10-04",
+          "2026-10-11",
+          "2026-10-18"
         ],
         "can12": [],
         "ural": [
@@ -84,15 +94,22 @@
           "2026-09-23"
         ],
         "ege": [
-          "2026-10-02"
+          "2026-10-02",
+          "2026-10-16"
         ],
         "melis": [
           "2026-09-22",
-          "2026-10-06"
+          "2026-10-06",
+          "2026-10-20"
         ],
         "eylul": [
           "2026-09-27",
-          "2026-10-04"
+          "2026-10-04",
+          "2026-10-10",
+          "2026-10-18"
+        ],
+        "maalar_0011": [
+          "2026-10-23"
         ]
       },
       "lessons": [
@@ -197,9 +214,9 @@
           "studentId": "sarp",
           "date": "2026-10-04",
           "month": "Ekim",
-          "rate": 2000,
-          "isPaid": false,
-          "paidDate": "",
+          "rate": 3000,
+          "isPaid": true,
+          "paidDate": "2026-10-04",
           "note": "Ödeme bekleniyor",
           "time": "14:00",
           "duration": 60
@@ -246,8 +263,8 @@
           "date": "2026-10-02",
           "month": "Ekim",
           "rate": 4000,
-          "isPaid": false,
-          "paidDate": "",
+          "isPaid": true,
+          "paidDate": "2026-10-22",
           "note": "Ödeme bekleniyor",
           "time": "14:00",
           "duration": 60
@@ -269,9 +286,9 @@
           "studentId": "melis",
           "date": "2026-10-06",
           "month": "Ekim",
-          "rate": 2750,
-          "isPaid": false,
-          "paidDate": "",
+          "rate": 3500,
+          "isPaid": true,
+          "paidDate": "2026-10-06",
           "note": "Ödeme bekleniyor",
           "time": "14:00",
           "duration": 60
@@ -293,15 +310,413 @@
           "studentId": "eylul",
           "date": "2026-10-04",
           "month": "Ekim",
-          "rate": 3500,
-          "isPaid": false,
-          "paidDate": "",
+          "rate": 4000,
+          "isPaid": true,
+          "paidDate": "2026-10-22",
           "note": "Ödeme bekleniyor",
           "time": "14:00",
           "duration": 60
+        },
+        {
+          "id": "les_1792659576619",
+          "studentId": "ege",
+          "date": "2026-10-16",
+          "time": "14:00",
+          "duration": 60,
+          "month": "Ekim",
+          "rate": 4000,
+          "isPaid": true,
+          "paidDate": "2026-10-16",
+          "note": ""
+        },
+        {
+          "id": "les_1792659645748",
+          "studentId": "sarp",
+          "date": "2026-10-11",
+          "time": "14:00",
+          "duration": 60,
+          "month": "Ekim",
+          "rate": 3000,
+          "isPaid": true,
+          "paidDate": "2026-10-11",
+          "note": ""
+        },
+        {
+          "id": "les_1792659662980",
+          "studentId": "sarp",
+          "date": "2026-10-18",
+          "time": "14:00",
+          "duration": 60,
+          "month": "Ekim",
+          "rate": 3000,
+          "isPaid": true,
+          "paidDate": "2026-10-18",
+          "note": ""
+        },
+        {
+          "id": "les_1792659777298",
+          "studentId": "melis",
+          "date": "2026-10-20",
+          "time": "14:00",
+          "duration": 60,
+          "month": "Ekim",
+          "rate": 3500,
+          "isPaid": true,
+          "paidDate": "2026-10-20",
+          "note": ""
+        },
+        {
+          "id": "les_1792659814209",
+          "studentId": "eylul",
+          "date": "2026-10-10",
+          "time": "14:00",
+          "duration": 60,
+          "month": "Ekim",
+          "rate": 4000,
+          "isPaid": true,
+          "paidDate": "2026-10-10",
+          "note": ""
+        },
+        {
+          "id": "les_1792659827994",
+          "studentId": "eylul",
+          "date": "2026-10-18",
+          "time": "14:00",
+          "duration": 60,
+          "month": "Ekim",
+          "rate": 4000,
+          "isPaid": true,
+          "paidDate": "2026-10-18",
+          "note": ""
+        },
+        {
+          "id": "les_1792659957296",
+          "studentId": "maalar_0011",
+          "date": "2026-10-23",
+          "time": "14:00",
+          "duration": 60,
+          "month": "Ekim",
+          "rate": 145000,
+          "isPaid": true,
+          "paidDate": "2026-10-23",
+          "note": ""
         }
       ],
+      "monthlyLessons": {
+        "Ağustos": {
+          "yalin": 1,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Eylül": {
+          "yalin": 5,
+          "sarp": 1,
+          "can12": 0,
+          "ural": 3,
+          "ege": 0,
+          "melis": 1,
+          "eylul": 1
+        },
+        "Ekim": {
+          "yalin": 1,
+          "sarp": 3,
+          "can12": 0,
+          "ural": 0,
+          "ege": 2,
+          "melis": 2,
+          "eylul": 3,
+          "maalar_0011": 1
+        },
+        "Kasım": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Aralık": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Ocak": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Şubat": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Mart": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Nisan": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Mayıs": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Haziran": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        }
+      },
+      "monthlyRevenue": {
+        "Ağustos": {
+          "yalin": 3000,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Eylül": {
+          "yalin": 17500,
+          "sarp": 3000,
+          "can12": 0,
+          "ural": 12000,
+          "ege": 0,
+          "melis": 3500,
+          "eylul": 4000
+        },
+        "Ekim": {
+          "yalin": 3500,
+          "sarp": 9000,
+          "can12": 0,
+          "ural": 0,
+          "ege": 8000,
+          "melis": 7000,
+          "eylul": 12000,
+          "maalar_0011": 145000
+        },
+        "Kasım": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Aralık": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Ocak": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Şubat": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Mart": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Nisan": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Mayıs": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        },
+        "Haziran": {
+          "yalin": 0,
+          "sarp": 0,
+          "can12": 0,
+          "ural": 0,
+          "ege": 0,
+          "melis": 0,
+          "eylul": 0
+        }
+      },
       "payments": [
+        {
+          "id": "pay_les_1792659957296",
+          "studentId": "maalar_0011",
+          "date": "2026-10-23",
+          "amount": 145000,
+          "type": "Banka Havalesi / EFT",
+          "note": "Ders ödemesi",
+          "lessonId": "les_1792659957296",
+          "createdAt": 1792659957296
+        },
+        {
+          "id": "pay_les_1792659827994",
+          "studentId": "eylul",
+          "date": "2026-10-18",
+          "amount": 4000,
+          "type": "Banka Havalesi / EFT",
+          "note": "Ders ödemesi",
+          "lessonId": "les_1792659827994",
+          "createdAt": 1792659827994
+        },
+        {
+          "id": "pay_les_1792659814209",
+          "studentId": "eylul",
+          "date": "2026-10-10",
+          "amount": 4000,
+          "type": "Banka Havalesi / EFT",
+          "note": "Ders ödemesi",
+          "lessonId": "les_1792659814209",
+          "createdAt": 1792659814209
+        },
+        {
+          "id": "pay_les_17",
+          "studentId": "eylul",
+          "date": "2026-10-22",
+          "amount": 4000,
+          "type": "Banka Havalesi / EFT",
+          "note": "Ders ödemesi (4 Ekim 2026)",
+          "lessonId": "les_17",
+          "createdAt": 1792659785262
+        },
+        {
+          "id": "pay_les_1792659777298",
+          "studentId": "melis",
+          "date": "2026-10-20",
+          "amount": 3500,
+          "type": "Banka Havalesi / EFT",
+          "note": "Ders ödemesi",
+          "lessonId": "les_1792659777298",
+          "createdAt": 1792659777298
+        },
+        {
+          "id": "pay_les_15",
+          "studentId": "melis",
+          "date": "2026-10-06",
+          "amount": 3500,
+          "type": "Banka Havalesi / EFT",
+          "note": "Ders ödemesi (Ödeme bekleniyor)",
+          "lessonId": "les_15",
+          "createdAt": 1792659758475
+        },
+        {
+          "id": "pay_les_1792659662980",
+          "studentId": "sarp",
+          "date": "2026-10-18",
+          "amount": 3000,
+          "type": "Banka Havalesi / EFT",
+          "note": "Ders ödemesi",
+          "lessonId": "les_1792659662980",
+          "createdAt": 1792659662980
+        },
+        {
+          "id": "pay_les_1792659645748",
+          "studentId": "sarp",
+          "date": "2026-10-11",
+          "amount": 3000,
+          "type": "Banka Havalesi / EFT",
+          "note": "Ders ödemesi",
+          "lessonId": "les_1792659645748",
+          "createdAt": 1792659645748
+        },
+        {
+          "id": "pay_les_9",
+          "studentId": "sarp",
+          "date": "2026-10-04",
+          "amount": 3000,
+          "type": "Banka Havalesi / EFT",
+          "note": "Ders ödemesi (Ödeme bekleniyor)",
+          "lessonId": "les_9",
+          "createdAt": 1792659605709
+        },
+        {
+          "id": "pay_les_1792659576619",
+          "studentId": "ege",
+          "date": "2026-10-16",
+          "amount": 4000,
+          "type": "Banka Havalesi / EFT",
+          "note": "Ders ödemesi",
+          "lessonId": "les_1792659576619",
+          "createdAt": 1792659576619
+        },
+        {
+          "id": "pay_les_13",
+          "studentId": "ege",
+          "date": "2026-10-22",
+          "amount": 4000,
+          "type": "Banka Havalesi / EFT",
+          "note": "Ders ödemesi (2 Ekim 2026)",
+          "lessonId": "les_13",
+          "createdAt": 1792659548782
+        },
         {
           "id": "pay_1",
           "studentId": "yalin",
@@ -411,209 +826,78 @@
           "lessonId": "les_16"
         }
       ],
-      "myPayments": [],
-      "monthlyLessons": {
-        "Ağustos": {
-          "yalin": 1,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
+      "myPayments": [
+        {
+          "id": "mypay_1",
+          "date": "2026-10-24",
+          "title": "Garanti BBVA Kredi Kartı",
+          "amount": 14500,
+          "category": "Kredi Kartı",
+          "status": "unpaid",
+          "paidDate": "",
+          "note": "Son ödeme günü 24 Ekim"
         },
-        "Eylül": {
-          "yalin": 5,
-          "sarp": 1,
-          "can12": 0,
-          "ural": 3,
-          "ege": 0,
-          "melis": 1,
-          "eylul": 1
+        {
+          "id": "mypay_2",
+          "date": "2026-10-15",
+          "title": "Ev Kirası",
+          "amount": 22000,
+          "category": "Kira & Aidat",
+          "status": "paid",
+          "paidDate": "2026-10-15",
+          "note": "Ekim ayı ev kirası ev sahibine ödendi"
         },
-        "Ekim": {
-          "yalin": 1,
-          "sarp": 1,
-          "can12": 0,
-          "ural": 0,
-          "ege": 1,
-          "melis": 1,
-          "eylul": 1
+        {
+          "id": "mypay_3",
+          "date": "2026-10-28",
+          "title": "İgdaş Doğalgaz Faturası",
+          "amount": 1250,
+          "category": "Fatura",
+          "status": "unpaid",
+          "paidDate": "",
+          "note": "Son gün 28 Ekim"
         },
-        "Kasım": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
+        {
+          "id": "mypay_4",
+          "date": "2026-10-18",
+          "title": "Turkcell Telefon & İnternet",
+          "amount": 890,
+          "category": "Fatura",
+          "status": "paid",
+          "paidDate": "2026-10-18",
+          "note": "Otomatik ödeme talimatı ödendi"
         },
-        "Aralık": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
+        {
+          "id": "mypay_5",
+          "date": "2026-10-25",
+          "title": "Site Aidatı",
+          "amount": 1500,
+          "category": "Kira & Aidat",
+          "status": "unpaid",
+          "paidDate": "",
+          "note": "Ekim ayı aidatı"
         },
-        "Ocak": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
+        {
+          "id": "mypay_6",
+          "date": "2026-10-31",
+          "title": "Bağkur / SGK Primi",
+          "amount": 7800,
+          "category": "Sigorta & Vergi",
+          "status": "unpaid",
+          "paidDate": "",
+          "note": "Son gün ay sonu"
         },
-        "Şubat": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
-        },
-        "Mart": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
-        },
-        "Nisan": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
-        },
-        "Mayıs": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
-        },
-        "Haziran": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
+        {
+          "id": "mypay_7",
+          "date": "2026-10-12",
+          "title": "Yapı Kredi Kredi Taksiti",
+          "amount": 6400,
+          "category": "Kredi Taksiti",
+          "status": "paid",
+          "paidDate": "2026-10-12",
+          "note": "10/24 taksit ödendi"
         }
-      },
-      "monthlyRevenue": {
-        "Ağustos": {
-          "yalin": 3000,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
-        },
-        "Eylül": {
-          "yalin": 17500,
-          "sarp": 3000,
-          "can12": 0,
-          "ural": 12000,
-          "ege": 0,
-          "melis": 3500,
-          "eylul": 4000
-        },
-        "Ekim": {
-          "yalin": 3500,
-          "sarp": 2000,
-          "can12": 0,
-          "ural": 0,
-          "ege": 4000,
-          "melis": 2750,
-          "eylul": 3500
-        },
-        "Kasım": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
-        },
-        "Aralık": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
-        },
-        "Ocak": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
-        },
-        "Şubat": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
-        },
-        "Mart": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
-        },
-        "Nisan": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
-        },
-        "Mayıs": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
-        },
-        "Haziran": {
-          "yalin": 0,
-          "sarp": 0,
-          "can12": 0,
-          "ural": 0,
-          "ege": 0,
-          "melis": 0,
-          "eylul": 0
-        }
-      }
+      ]
     },
     {
       "id": "2025-2026",
@@ -14111,5 +14395,7 @@
       ],
       "myPayments": []
     }
-  ]
+  ],
+  "_updatedAt": 1792666596935,
+  "_lastDevice": "Geri Yükleme"
 }

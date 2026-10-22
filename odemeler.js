@@ -87,19 +87,26 @@ function loadData() {
         existingP = JSON.parse(JSON.stringify(initP));
         appState.data.periods.push(existingP);
       } else {
-        if ((!existingP.lessons || existingP.lessons.length === 0) && initP.lessons && initP.lessons.length > 0) {
+        if ((!existingP.lessons || existingP.lessons.length < (initP.lessons || []).length) && initP.lessons && initP.lessons.length > 0) {
           existingP.lessons = JSON.parse(JSON.stringify(initP.lessons));
         }
-        if ((!existingP.payments || existingP.payments.length === 0) && initP.payments && initP.payments.length > 0) {
+        if ((!existingP.payments || existingP.payments.length < (initP.payments || []).length) && initP.payments && initP.payments.length > 0) {
           existingP.payments = JSON.parse(JSON.stringify(initP.payments));
         }
-        if (!existingP.myPayments || !Array.isArray(existingP.myPayments)) {
-          existingP.myPayments = [];
+        if ((!existingP.students || existingP.students.length < (initP.students || []).length) && initP.students && initP.students.length > 0) {
+          existingP.students = JSON.parse(JSON.stringify(initP.students));
         }
-        // Otomatik veya sahte eklenmiş test faturalarını temizle (sadece kullanıcının girdikleri kalır)
+        if (!existingP.myPayments || !Array.isArray(existingP.myPayments) || (existingP.id === '2026-2027' && existingP.myPayments.length === 0)) {
+          if (initP.myPayments && initP.myPayments.length > 0) {
+            existingP.myPayments = JSON.parse(JSON.stringify(initP.myPayments));
+          } else {
+            existingP.myPayments = [];
+          }
+        }
+        // Yalnızca sahte/yapay Ağustos, Eylül, Kasım faturalarını temizle (kullanıcının 7 faturasını koru)
         existingP.myPayments = existingP.myPayments.filter(pay => {
           if (!pay || !pay.id) return false;
-          return !/^mypay_(aug|sep|nov)_\d+$/.test(pay.id) && !/^mypay_[1-7]$/.test(pay.id);
+          return !/^mypay_(aug|sep|nov)_\d+$/.test(pay.id);
         });
       }
     });
@@ -148,13 +155,18 @@ function getActivePeriod() {
 
 function ensureMyPaymentsArray(period) {
   if (!period) return;
-  if (!period.myPayments || !Array.isArray(period.myPayments)) {
-    period.myPayments = [];
+  const initPer = (window.INITIAL_DERS_DATA?.periods || []).find(p => p.id === period.id);
+  if (!period.myPayments || !Array.isArray(period.myPayments) || (period.id === '2026-2027' && period.myPayments.length === 0)) {
+    if (initPer && Array.isArray(initPer.myPayments) && initPer.myPayments.length > 0) {
+      period.myPayments = JSON.parse(JSON.stringify(initPer.myPayments));
+    } else {
+      period.myPayments = [];
+    }
   }
-  // Sahte/otomatik test faturalarını temizle (sadece kullanıcının girdikleri kalır)
+  // Yalnızca sahte Ağustos, Eylül, Kasım faturalarını temizle (kullanıcının 7 faturasını KORU)
   period.myPayments = period.myPayments.filter(pay => {
     if (!pay || !pay.id) return false;
-    return !/^mypay_(aug|sep|nov)_\d+$/.test(pay.id) && !/^mypay_[1-7]$/.test(pay.id);
+    return !/^mypay_(aug|sep|nov)_\d+$/.test(pay.id);
   });
 }
 

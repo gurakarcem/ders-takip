@@ -159,7 +159,7 @@
     return null;
   }
 
-  // Bulut Verisini Onar ve Eksiksiz Kıl (Kullanıcının girmediği faturaları ASLA otomatik ekleme)
+  // Bulut Verisini Onar ve Eksiksiz Kıl (Kullanıcının girdiği faturaları ve dersleri tam koru, sahte olanları temizle)
   function repairAndNormalize(data) {
     if (!data || !data.periods) return data;
     const initPeriods = window.INITIAL_DERS_DATA?.periods || [];
@@ -169,20 +169,26 @@
         p = JSON.parse(JSON.stringify(initP));
         data.periods.push(p);
       } else {
-        if ((!p.lessons || p.lessons.length === 0) && initP.lessons && initP.lessons.length > 0) {
+        if ((!p.lessons || p.lessons.length < (initP.lessons || []).length) && initP.lessons && initP.lessons.length > 0) {
           p.lessons = JSON.parse(JSON.stringify(initP.lessons));
         }
-        if ((!p.payments || p.payments.length === 0) && initP.payments && initP.payments.length > 0) {
+        if ((!p.payments || p.payments.length < (initP.payments || []).length) && initP.payments && initP.payments.length > 0) {
           p.payments = JSON.parse(JSON.stringify(initP.payments));
         }
-        // Kişisel harcamalar: Kullanıcı ne girdiyse SADECE o kalmalı, otomatik sahte fatura eklenmemeli
-        if (!p.myPayments || !Array.isArray(p.myPayments)) {
-          p.myPayments = [];
+        if ((!p.students || p.students.length < (initP.students || []).length) && initP.students && initP.students.length > 0) {
+          p.students = JSON.parse(JSON.stringify(initP.students));
         }
-        // Sahte/test faturalarını temizle
+        if (!p.myPayments || !Array.isArray(p.myPayments) || (p.id === '2026-2027' && p.myPayments.length === 0)) {
+          if (initP.myPayments && initP.myPayments.length > 0) {
+            p.myPayments = JSON.parse(JSON.stringify(initP.myPayments));
+          } else {
+            p.myPayments = [];
+          }
+        }
+        // Yalnızca yapay/sahte test faturalarını temizle (kullanıcının 7 faturasını KORU)
         p.myPayments = p.myPayments.filter(pay => {
           if (!pay || !pay.id) return false;
-          return !/^mypay_(aug|sep|nov)_\d+$/.test(pay.id) && !/^mypay_[1-7]$/.test(pay.id);
+          return !/^mypay_(aug|sep|nov)_\d+$/.test(pay.id);
         });
       }
     });
